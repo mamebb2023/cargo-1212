@@ -1,6 +1,4 @@
 "use client";
-
-import { Button } from "../ui/button";
 import { motion } from "framer-motion";
 
 export default function ServiceSection() {
@@ -19,11 +17,11 @@ export default function ServiceSection() {
         variants={fadeUp}
       >
         <h2 className="text-4xl font-semibold text-slate-900">
-          Latest advanced technologies to <br /> ensure everything you need
+          Comprehensive platform to <br /> manage your logistics needs
         </h2>
         <p className="text-slate-600 mt-3">
-          Maximize your team’s productivity and security with our affordable,
-          user-friendly management system.
+          Connect shippers and carriers efficiently with transparent bidding,
+          secure payments, and quality assurance.
         </p>
       </motion.div>
 
@@ -37,32 +35,28 @@ export default function ServiceSection() {
           viewport={{ once: true }}
           variants={fadeUp}
         >
-          <div className="inset-0 z-2  absolute bg-linear-to-b from-transparent to-primary/30"></div>
+          {/* <div className="inset-0 z-2  absolute bg-linear-to-b from-transparent to-primary/30"></div> */}
           <div>
             <h3 className="text-xl font-semibold text-slate-900">
-              Dynamic dashboard
+              Bidding dashboard
             </h3>
-            <p className="text-slate-600 mt-2">
-              Helps teams work faster, smarter and more efficiently with
-              visibility and data-driven insights.
+            <p className="text-slate-600 mt-1 text-sm">
+              Post freight transport opportunities, monitor bids, and connect
+              with winning associations through a centralized platform.
             </p>
           </div>
 
-          <div className="flex-center mt-6 w-full h-40">
+          <div className="flex-center flex-1 mt-6 w-full h-40">
             <img
               src="/img/img-1.jpg"
               alt="img"
-              className="h-80 absolute bottom-0 rounded-t-xl object-cover object-center"
+              className="h-96 rounded-xl object-cover object-center"
             />
           </div>
-
-          <Button className="mt-6 px-5 py-2 z-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">
-            Explore
-          </Button>
         </motion.div>
 
         {/* RIGHT COLUMN */}
-        <div className="flex flex-col gap-6 ">
+        <div className="flex flex-col gap-6">
           {/* Box 1 */}
           <motion.div
             className="relative bg-blue-50 border border-blue-100 rounded-2xl  overflow-hidden"
@@ -73,10 +67,11 @@ export default function ServiceSection() {
           >
             <div className="py-4 px-6">
               <h3 className="text-xl font-semibold text-slate-900">
-                Smart notifications
+                Offer submission
               </h3>
-              <p className="text-slate-600 mt-2">
-                Easily accessible from notifications center, calendar or email.
+              <p className="text-slate-600 mt-1 text-sm">
+                Carriers can view available bids and submit competitive offers
+                with real-time updates and negotiations.
               </p>
             </div>
 
@@ -99,10 +94,11 @@ export default function ServiceSection() {
           >
             <div className="py-4 px-6">
               <h3 className="text-xl font-semibold text-slate-900">
-                Smart notifications
+                Payment verification
               </h3>
-              <p className="text-slate-600 mt-2">
-                Easily accessible from notifications center, calendar or email.
+              <p className="text-slate-600 mt-1 text-sm">
+                Secure payment processing with admin verification to ensure
+                funds are deposited within specified timeframes.
               </p>
             </div>
 

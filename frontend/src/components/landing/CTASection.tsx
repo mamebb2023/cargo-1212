@@ -24,13 +24,11 @@ export default function CTASection() {
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
           <h2 className="text-4xl font-bold mb-4">
-            Discover the full scale of{" "}
-            <span className="underline decoration-blue-300">CargoBid</span>{" "}
-            capabilities
+            Transform your logistics with{" "}
+            <span className="underline decoration-blue-300">CargoBid</span>
           </h2>
           <p className="text-blue-200">
-            Explore features designed to help you grow and manage operations
-            effortlessly.
+            Join our platform to streamline freight transport bidding, connect with reliable carriers, and ensure transparent contract awards.
           </p>
         </motion.div>
 
@@ -44,10 +42,10 @@ export default function CTASection() {
           transition={{ duration: 0.6, ease: "easeOut", delay: 0.4 }}
         >
           <Button className="bg-white text-blue-900 hover:bg-blue-200 rounded-xl px-6 py-3">
-            Get a Demo
+            Register Now
           </Button>
           <Button className="bg-blue-400 text-blue-900 hover:bg-blue-300 rounded-xl px-6 py-3">
-            Explore Bids
+            View Active Bids
           </Button>
         </motion.div>
       </motion.div>

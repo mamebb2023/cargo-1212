@@ -24,7 +24,7 @@ export default function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          #1 Energy provider in the world
+          #1 Cargo and Logistics Transport Bidding Platform
         </motion.span>
 
         {/* Hero Heading */}
@@ -34,7 +34,7 @@ export default function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
-          New Energy <br /> for the Future
+          Streamline Your <br /> Logistics Transport
         </motion.h1>
 
         {/* CTA buttons */}
@@ -45,23 +45,23 @@ export default function HeroSection() {
           transition={{ duration: 0.6, delay: 0.5, ease: "easeInOut" }}
         >
           <Link
-            to="/contact"
+            to="/register"
             className="text-white font-medium border-b border-white/60 pb-1 flex items-center gap-2 hover:opacity-80"
           >
-            Get in touch →
+            Get Started →
           </Link>
 
           <Link
-            to="/services"
+            to="/bids"
             className="text-white font-medium border-b border-white/60 pb-1 flex items-center gap-2 hover:opacity-80"
           >
-            Our services →
+            View Bids →
           </Link>
         </motion.div>
       </div>
 
       {/* Stats & corner images */}
-      <div className="absolute right-0 bottom-0 flex flex-col">
+      <div className="absolute right-0 bottom-0 hidden md:flex flex-col">
         <div className="flex justify-end flex-1">
           <img
             src={InvertedCorder}
@@ -77,28 +77,28 @@ export default function HeroSection() {
             draggable={false}
           />
 
-          <div className="bg-white p-8 rounded-tl-3xl flex gap-7 max-w-[550px]">
+          <div className="bg-white p-6 rounded-tl-3xl flex gap-7 max-w-[600px]">
             <div className="flex gap-7 max-w-[550px] mx-auto">
               {[
                 {
-                  number: "10K",
+                  number: "10K+",
                   label:
-                    "Lorem ipsum dolor sit amet consectetur adipisicing elit.",
+                    "Active truck owners and carriers registered on the platform.",
                 },
                 {
-                  number: "315",
+                  number: "500+",
                   label:
-                    "Lorem ipsum dolor sit amet consectetur adipisicing elit.",
+                    "Successful bids completed with transparent contract awards.",
                 },
                 {
-                  number: "100",
+                  number: "100%",
                   label:
-                    "Lorem ipsum dolor sit amet consectetur adipisicing elit.",
+                    "Transparent bidding process ensuring fair competition.",
                 },
               ].map((item, index) => (
                 <motion.div
                   key={index}
-                  className="space-y-3 w-1/3 text-center bg-white p-4 rounded-2xl"
+                  className="space-y-3  text-center bg-white p-4 rounded-2xl"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{
@@ -107,7 +107,7 @@ export default function HeroSection() {
                     ease: "easeOut",
                   }}
                 >
-                  <h1 className="text-7xl text-primary">{item.number}</h1>
+                  <h1 className="text-6xl text-primary">{item.number}</h1>
                   <p className="text-xs text-gray-500">{item.label}</p>
                 </motion.div>
               ))}

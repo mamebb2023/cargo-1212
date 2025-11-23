@@ -14,33 +14,33 @@ import { motion } from "framer-motion";
 export default function FeaturesSection() {
   const features = [
     {
-      title: "Layered security",
-      desc: "With layered security, we ensure the safety of every unit we provide.",
+      title: "Secure authentication",
+      desc: "Robust user authentication with secure password hashing and role-based access control for all stakeholders.",
       icon: ShieldCheck,
     },
     {
-      title: "Quality control of each part",
-      desc: "Every unit you send is checked carefully for every detail.",
+      title: "Transparent bidding process",
+      desc: "Clear and fair bidding system where associations deposit funds and the lowest bidder wins the contract.",
       icon: CheckCircle,
     },
     {
-      title: "Reliable customer service",
-      desc: "Our customer service is available 24 hours a week, with qualified people.",
+      title: "Real-time communication",
+      desc: "Seamless communication between shippers, carriers, and truck owners throughout the bidding process.",
       icon: MessageCircle,
     },
     {
-      title: "Maintenance manual book",
-      desc: "We provide a guidebook that can be used to ensure maximum care.",
+      title: "Contract management",
+      desc: "Comprehensive system to post bids, submit offers, and finalize contracts efficiently.",
       icon: FileText,
     },
     {
-      title: "Delivered safely",
-      desc: "Every unit we send arrives safely and quickly, without any obstacles or drama.",
+      title: "Quality rating system",
+      desc: "Performance rating system to assess carriers based on on-time delivery, cargo handling, and communication.",
       icon: Package,
     },
     {
-      title: "Based on artificial intelligence",
-      desc: "You can control and view each unit from your phone, it’s very easy to use.",
+      title: "Payment verification",
+      desc: "Secure payment processing with admin verification to ensure funds are deposited within specified timeframes.",
       icon: Cpu,
     },
   ];
@@ -61,10 +61,10 @@ export default function FeaturesSection() {
         viewport={{ once: true }}
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
-        <h2 className="text-5xl font-semibold text-slate-900">
-          We offer <span className="text-primary">quality</span>, with the
-          <br />
-          best materials and service
+        <h2 className="text-3xl md:text-5xl font-semibold text-slate-900">
+          We offer <span className="text-primary">transparent</span> and
+          <br className="hidden md:block" />
+          efficient bidding management
         </h2>
       </motion.div>
 

@@ -7,8 +7,8 @@ export default function Header() {
 
   const navLinks = [
     { name: "About Us", path: "/about" },
-    { name: "Features", path: "/features" },
-    { name: "Services", path: "/services" },
+    { name: "Features", path: "/#features" },
+    { name: "Services", path: "/#services" },
     { name: "Contact", path: "/contact" },
   ];
 
@@ -60,7 +60,7 @@ export default function Header() {
             </Button>
           </Link>
 
-          <Link to="/contact">
+          <Link to="/register">
             <Button variant="secondary" className="rounded-full">
               Create a Bid
             </Button>
