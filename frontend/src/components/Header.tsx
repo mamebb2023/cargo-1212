@@ -27,7 +27,7 @@ export default function Header() {
         fixed top-0 left-0 w-full z-50 transition-all duration-300
         ${
           scrolled
-            ? "bg-white/80 backdrop-blur-sm shadow-sm rounded-b-2xl"
+            ? "bg-white/90 backdrop-blur-sm shadow-sm rounded-b-2xl"
             : "bg-transparent"
         }
       `}
@@ -62,7 +62,7 @@ export default function Header() {
 
           <Link to="/contact">
             <Button variant="secondary" className="rounded-full">
-              Get in touch
+              Create a Bid
             </Button>
           </Link>
         </div>
