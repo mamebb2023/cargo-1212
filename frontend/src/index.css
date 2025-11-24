@@ -40,8 +40,24 @@
   --color-border: var(--border);
   --color-input: var(--input);
 }
+
 @layer base {
   .flex-center {
     @apply flex items-center justify-center;
   }
+}
+
+.gradient-underline {
+  position:relative;
+}
+
+.gradient-underline::before {
+  content: "";
+  position: absolute;
+  bottom: -7px;
+  left: 0;
+  width: 80%;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--primary), rgb(0, 0, 146))
 }

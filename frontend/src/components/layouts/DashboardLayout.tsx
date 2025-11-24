@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   FileText,
@@ -10,11 +10,7 @@ import {
   Package,
 } from "lucide-react";
 
-interface DashboardLayoutProps {
-  children: React.ReactNode;
-}
-
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
@@ -58,7 +54,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         }`}
       >
         {/* Logo Section */}
-        <div className="h-16 border-b border-gray-200 flex items-center justify-between px-4 flex-shrink-0">
+        <div className="h-16 border-b border-gray-200 flex items-center justify-between px-4 shrink-0">
           <div className="flex items-center gap-2 flex-1">
             {sidebarOpen ? (
               <Link to="/dashboard" className="flex items-center gap-2">
@@ -99,7 +95,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 }`}
                 title={!sidebarOpen ? item.label : undefined}
               >
-                <Icon className="w-5 h-5 flex-shrink-0" />
+                <Icon className="w-5 h-5 shrink-0" />
                 {sidebarOpen && (
                   <span className="text-sm font-medium">{item.label}</span>
                 )}
@@ -109,7 +105,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </nav>
 
         {/* Logout Button */}
-        <div className="p-4 border-t border-gray-200 flex-shrink-0">
+        <div className="p-4 border-t border-gray-200 shrink-0">
           <button
             onClick={() => navigate("/login")}
             className={`flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors w-full ${
@@ -117,7 +113,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             }`}
             title={!sidebarOpen ? "Logout" : undefined}
           >
-            <LogOut className="w-5 h-5 flex-shrink-0" />
+            <LogOut className="w-5 h-5 shrink-0" />
             {sidebarOpen && <span className="text-sm font-medium">Logout</span>}
           </button>
         </div>
@@ -129,7 +125,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           sidebarOpen ? "ml-64" : "ml-20"
         }`}
       >
-        <div className="p-6">{children}</div>
+        <div className="p-6">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

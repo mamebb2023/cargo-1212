@@ -52,7 +52,7 @@ export default function FeaturesSection() {
   };
 
   return (
-    <section className="w-full bg-white py-20">
+    <section id="features" className="w-full bg-white py-20">
       {/* Section Header */}
       <motion.div
         className="mx-auto max-w-5xl text-center mb-16 px-4"
@@ -82,19 +82,21 @@ export default function FeaturesSection() {
           return (
             <motion.div
               key={i}
-              className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl shadow-black/10 hover:scale-105 border border-slate-200 transition-all"
+              className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl shadow-black/10 hover:scale-105 border border-slate-200 transition-all flex flex-row md:flex-col gap-3"
               variants={cardVariants}
               transition={{ duration: 0.6, ease: "linear" }}
             >
-              <div className="w-12 h-12 rounded-full bg-linear-to-br from-primary to-blue-900 flex items-center justify-center mb-4">
+              <div className="shrink-0 w-12 h-12 rounded-full bg-linear-to-br from-primary to-blue-900 flex items-center justify-center">
                 <Icon className="text-white" size={22} strokeWidth={2} />
               </div>
 
-              <h3 className="text-lg font-medium text-slate-900">
-                {item.title}
-              </h3>
+              <div>
+                <h3 className="text-lg font-medium text-slate-900">
+                  {item.title}
+                </h3>
 
-              <p className="text-slate-600 text-sm mt-1">{item.desc}</p>
+                <p className="text-slate-600 text-sm mt-1">{item.desc}</p>
+              </div>
             </motion.div>
           );
         })}

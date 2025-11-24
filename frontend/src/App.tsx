@@ -8,6 +8,7 @@ import ContactPage from "@/pages/ContactPage";
 import DashboardPage from "@/pages/DashboardPage";
 import BidsPage from "@/pages/dashboard/BidsPage";
 import ProfilePage from "@/pages/dashboard/ProfilePage";
+import DashboardLayout from "@/components/layouts/DashboardLayout";
 
 function App() {
   return (
@@ -42,9 +43,11 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/dashboard/bids" element={<BidsPage />} />
-        <Route path="/dashboard/profile" element={<ProfilePage />} />
+        <Route path="/dashboard" element={<DashboardLayout />}>
+          <Route index element={<DashboardPage />} />
+          <Route path="bids" element={<BidsPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );

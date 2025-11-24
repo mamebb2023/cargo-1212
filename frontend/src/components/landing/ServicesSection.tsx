@@ -1,5 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
+import { BarChart3, DollarSign, HandIcon } from "lucide-react";
 
 export default function ServiceSection() {
   const fadeUp = {
@@ -17,7 +18,8 @@ export default function ServiceSection() {
         variants={fadeUp}
       >
         <h2 className="text-4xl font-semibold text-slate-900">
-          Comprehensive platform to <br /> manage your logistics needs
+          Comprehensive <span className="text-primary">platform</span> to <br />{" "}
+          manage <span className="text-primary">your</span> logistics needs
         </h2>
         <p className="text-slate-600 mt-3">
           Connect shippers and carriers efficiently with transparent bidding,
@@ -37,7 +39,10 @@ export default function ServiceSection() {
         >
           {/* <div className="inset-0 z-2  absolute bg-linear-to-b from-transparent to-primary/30"></div> */}
           <div>
-            <h3 className="text-xl font-semibold text-slate-900">
+            <h3 className="flex items-center gap-3 text-xl text-slate-900 font-bold">
+              <span className="text-primary">
+                <BarChart3 className="text-primary size-5" />
+              </span>
               Bidding dashboard
             </h3>
             <p className="text-slate-600 mt-1 text-sm">
@@ -66,7 +71,10 @@ export default function ServiceSection() {
             variants={fadeUp}
           >
             <div className="py-4 px-6">
-              <h3 className="text-xl font-semibold text-slate-900">
+              <h3 className="flex items-center gap-3 text-xl text-slate-900 font-bold">
+                <span className="text-primary">
+                  <HandIcon className="text-primary size-6" />
+                </span>
                 Offer submission
               </h3>
               <p className="text-slate-600 mt-1 text-sm">
@@ -93,7 +101,10 @@ export default function ServiceSection() {
             variants={fadeUp}
           >
             <div className="py-4 px-6">
-              <h3 className="text-xl font-semibold text-slate-900">
+              <h3 className="flex items-center gap-3 text-xl text-slate-900 font-bold">
+                <span className="text-primary">
+                  <DollarSign className="text-primary size-5" />
+                </span>
                 Payment verification
               </h3>
               <p className="text-slate-600 mt-1 text-sm">
