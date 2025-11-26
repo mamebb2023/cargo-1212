@@ -174,7 +174,9 @@ export default function RegisterPage() {
                       className={errors.name ? "border-destructive" : ""}
                     />
                     {errors.name && (
-                      <p className="text-xs text-destructive">{errors.name}</p>
+                      <p className="text-xs text-destructive max-w-xs">
+                        {errors.name}
+                      </p>
                     )}
                   </div>
 
@@ -189,7 +191,9 @@ export default function RegisterPage() {
                       className={errors.email ? "border-destructive" : ""}
                     />
                     {errors.email && (
-                      <p className="text-xs text-destructive">{errors.email}</p>
+                      <p className="text-xs text-destructive max-w-xs">
+                        {errors.email}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -205,7 +209,9 @@ export default function RegisterPage() {
                     className={errors.phone ? "border-destructive" : ""}
                   />
                   {errors.phone && (
-                    <p className="text-xs text-destructive">{errors.phone}</p>
+                    <p className="text-xs text-destructive max-w-xs">
+                      {errors.phone}
+                    </p>
                   )}
                 </div>
 
@@ -221,7 +227,7 @@ export default function RegisterPage() {
                       className={errors.password ? "border-destructive" : ""}
                     />
                     {errors.password && (
-                      <p className="text-xs text-destructive">
+                      <p className="text-xs text-destructive max-w-xs">
                         {errors.password}
                       </p>
                     )}
@@ -242,7 +248,7 @@ export default function RegisterPage() {
                       }
                     />
                     {errors.confirmPassword && (
-                      <p className="text-xs text-destructive">
+                      <p className="text-xs text-destructive max-w-xs">
                         {errors.confirmPassword}
                       </p>
                     )}
