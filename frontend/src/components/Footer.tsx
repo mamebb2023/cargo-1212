@@ -17,12 +17,9 @@ export function Footer() {
 
   return (
     <footer className="relative w-full py-16 px-6 border-t border-gray-300 text-gray-700 overflow-hidden">
-      {/* here */}
-      <div className="absolute bottom-0 translate-y-1/2 left-0 h-full w-full bg-linear-to-r from-primary to-cyan-500 opacity-30 rounded-t-[50%] blur-3xl"></div>
-
       <div className="relative max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-7">
         {/* Brand */}
-        <div className="flex flex-col space-y-4">
+        <div className="self-grid flex flex-col space-y-4">
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded-md bg-blue-500" />
             <span className="text-xl font-semibold text-gray-900">
@@ -43,7 +40,7 @@ export function Footer() {
 
         {/* Quick Links */}
         <div className="flex flex-col gap-3">
-          <h4 className="font-semibold text-gray-900 mb-2">Quick Links</h4>
+          <h4 className="font-semibold text-blue-800 mb-2">Quick Links</h4>
           {navLinks.map((link) => (
             <Link
               key={link.path}
@@ -57,7 +54,7 @@ export function Footer() {
 
         {/* Terms */}
         <div className=" flex flex-col gap-3">
-          <h4 className="font-semibold text-gray-900 mb-2">Terms</h4>
+          <h4 className="font-semibold text-blue-800 mb-2">Terms</h4>
           {termsLinks.map((link) => (
             <Link
               key={link.path}
@@ -71,7 +68,7 @@ export function Footer() {
 
         {/* Connect */}
         <div className="flex flex-col gap-3">
-          <h4 className="font-semibold text-gray-900 mb-2">Connect</h4>
+          <h4 className="font-semibold text-blue-800 mb-2">Connect</h4>
           <div className="flex gap-4">
             <Link to="#" aria-label="Twitter">
               <Twitter className="w-5 h-5 text-gray-600 hover:text-gray-900" />

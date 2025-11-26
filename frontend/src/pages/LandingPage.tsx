@@ -4,6 +4,7 @@ import HeroSection from "@/components/landing/HeroSection";
 import CTASection from "@/components/landing/CTASection";
 import { Footer } from "@/components/Footer";
 import ServiceSection from "@/components/landing/ServicesSection";
+import PricingSection from "@/components/landing/PricingSection";
 
 const LandingPage = () => {
   return (
@@ -13,6 +14,7 @@ const LandingPage = () => {
         <HeroSection />
         <FeaturesSection />
         <ServiceSection />
+        <PricingSection />
         <CTASection />
       </div>
       <Footer />
