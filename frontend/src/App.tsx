@@ -7,8 +7,15 @@ import AboutPage from "@/pages/AboutPage";
 import ContactPage from "@/pages/ContactPage";
 import DashboardPage from "@/pages/DashboardPage";
 import BidsPage from "@/pages/dashboard/BidsPage";
+import CreateBidPage from "@/pages/dashboard/CreateBidPage";
+import BidDetailsPage from "@/pages/dashboard/BidDetailsPage";
+import MyBidsPage from "@/pages/dashboard/MyBidsPage";
 import ProfilePage from "@/pages/dashboard/ProfilePage";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
+import AdminLoginPage from "@/pages/admin/AdminLoginPage";
+import AdminDashboardPage from "@/pages/admin/AdminDashboardPage";
+import ToReviewPage from "@/pages/admin/ToReviewPage";
+import AdminLayout from "@/components/layouts/AdminLayout";
 
 function App() {
   return (
@@ -46,7 +53,16 @@ function App() {
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="bids" element={<BidsPage />} />
+          <Route path="bids/create" element={<CreateBidPage />} />
+          <Route path="bids/:id" element={<BidDetailsPage />} />
+          <Route path="my-bids" element={<MyBidsPage />} />
           <Route path="profile" element={<ProfilePage />} />
+        </Route>
+
+        <Route path="/admin/login" element={<AdminLoginPage />} />
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route path="dashboard" element={<AdminDashboardPage />} />
+          <Route path="to-review" element={<ToReviewPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

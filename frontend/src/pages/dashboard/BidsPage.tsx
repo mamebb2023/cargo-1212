@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Filter, Package } from "lucide-react";
+import { Search, Filter, Package, Plus } from "lucide-react";
 
 export default function BidsPage() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
@@ -87,12 +89,22 @@ export default function BidsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Transport Bids</h1>
-        <p className="text-gray-600 mt-1">
-          Browse freight transport opportunities posted by shippers. Submit
-          competitive offers to win contracts.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Transport Bids</h1>
+          <p className="text-gray-600 mt-1">
+            Browse freight transport opportunities posted by shippers. Submit
+            competitive offers to win contracts.
+          </p>
+        </div>
+        <Button 
+          variant="secondary" 
+          onClick={() => navigate("/dashboard/bids/create")}
+          className="flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Create a Bid
+        </Button>
       </div>
 
       {/* Search and Filter */}
@@ -142,80 +154,46 @@ export default function BidsPage() {
               key={bid.id}
               className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
             >
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {bid.title}
-                    </h3>
-                    <span
-                      className={`px-2 py-1 text-xs font-medium rounded ${
-                        bid.status === "active"
-                          ? "bg-green-100 text-green-700"
-                          : bid.status === "pending"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      {bid.status.charAt(0).toUpperCase() + bid.status.slice(1)}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    {bid.title}
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">
                     {bid.description}
                   </p>
-                  <div className="space-y-2 mt-3">
+                  <div className="space-y-2">
                     <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                      <span>
-                        <strong className="text-gray-900">Shipper:</strong>{" "}
-                        {bid.shipperName}
-                      </span>
                       <span>
                         <strong className="text-gray-900">Route:</strong>{" "}
                         {bid.origin} → {bid.destination}
                       </span>
                       <span>
                         <strong className="text-gray-900">Cargo:</strong>{" "}
-                        {bid.cargoType} ({bid.weight})
+                        {bid.cargoType}
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-4 text-sm text-gray-500">
                       <span>
-                        <strong>Budget:</strong> {bid.budget}
-                      </span>
-                      {bid.status === "active" && bid.lowestOffer && (
-                        <span>
-                          <strong>Lowest Offer:</strong>{" "}
-                          <span className="text-green-600 font-semibold">
-                            {bid.lowestOffer}
-                          </span>
-                        </span>
-                      )}
-                      <span>
-                        <strong>Posted:</strong> {bid.postedDate}
-                      </span>
-                      <span>
                         <strong>Deadline:</strong> {bid.deadline}
                       </span>
                       <span>
-                        <strong>Offers Received:</strong> {bid.offers}
+                        <strong>Offers:</strong> {bid.offers}
                       </span>
                     </div>
                   </div>
                 </div>
-                <div className="ml-4 flex flex-col gap-2">
-                  <Button variant="secondary" size="sm">
+                <div className="flex flex-col gap-2 min-w-[140px]">
+                  <Button 
+                    variant="secondary" 
+                    size="sm"
+                    onClick={() => navigate(`/dashboard/bids/${bid.id}`)}
+                  >
                     View Details
                   </Button>
-                  {bid.status === "active" && (
-                    <Button variant="outline" size="sm">
-                      Submit Offer
-                    </Button>
-                  )}
-                  {bid.status === "closed" && (
-                    <span className="text-xs text-gray-500 text-center">
-                      Closed
-                    </span>
-                  )}
+                  <Button variant="outline" size="sm">
+                    Submit Offer
+                  </Button>
                 </div>
               </div>
             </div>

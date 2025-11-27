@@ -1,9 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { User, Mail, Phone, MapPin } from "lucide-react";
+import { User, Mail, Phone, MapPin, LogOut } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState({
     name: "John Doe",
@@ -28,7 +31,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
         <p className="text-gray-600 mt-1">
@@ -192,12 +195,26 @@ export default function ProfilePage() {
           </Button>
         </div>
       </div>
+
+      {/* Logout Section */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Logout</h3>
+            <p className="text-sm text-gray-600 mt-1">
+              Sign out of your account
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/login")}
+            className="lg:w-auto w-full justify-center text-blue-600 hover:text-blue-700 border-blue-200"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Logout
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
-
-
-
-
-
-

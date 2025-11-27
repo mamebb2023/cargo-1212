@@ -3,16 +3,13 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   FileText,
-  User,
   LogOut,
-  Package,
   ChevronLeft,
-  Settings,
+  Shield,
 } from "lucide-react";
 
-export default function DashboardLayout() {
+export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -20,25 +17,22 @@ export default function DashboardLayout() {
     {
       icon: LayoutDashboard,
       label: "Dashboard",
-      path: "/dashboard",
-    },
-    {
-      icon: Package,
-      label: "Bids",
-      path: "/dashboard/bids",
+      path: "/admin/dashboard",
     },
     {
       icon: FileText,
-      label: "My Bids",
-      path: "/dashboard/my-bids",
+      label: "To Review",
+      path: "/admin/to-review",
     },
   ];
 
   const isActive = (path: string) => {
-    if (path === "/dashboard") {
-      return location.pathname === path;
-    }
-    return location.pathname.startsWith(path);
+    return location.pathname === path;
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("isAdmin");
+    navigate("/admin/login");
   };
 
   return (
@@ -53,13 +47,17 @@ export default function DashboardLayout() {
         <div className="h-16 border-b border-gray-200 flex items-center justify-between px-4 shrink-0">
           <div className="flex items-center gap-2 flex-1">
             {sidebarOpen ? (
-              <Link to="/dashboard" className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-md bg-blue-500" />
-                <span className="font-semibold text-lg">CargoBid</span>
+              <Link to="/admin/dashboard" className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-md bg-red-500 flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-white" />
+                </div>
+                <span className="font-semibold text-lg">Admin Panel</span>
               </Link>
             ) : (
-              <Link to="/dashboard" className="mx-auto">
-                <div className="h-8 w-8 rounded-md bg-blue-500" />
+              <Link to="/admin/dashboard" className="mx-auto">
+                <div className="h-8 w-8 rounded-md bg-red-500 flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-white" />
+                </div>
               </Link>
             )}
           </div>
@@ -67,7 +65,7 @@ export default function DashboardLayout() {
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-1.5 rounded-md bg-gray-100 hover:bg-gray-200 transition-all ml-4"
           >
-            <ChevronLeft 
+            <ChevronLeft
               className={`size-4 text-gray-600 transition-transform duration-300 ${
                 sidebarOpen ? "" : "rotate-180"
               }`}
@@ -86,7 +84,7 @@ export default function DashboardLayout() {
                 to={item.path}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                   active
-                    ? "bg-blue-50 text-blue-600"
+                    ? "bg-red-50 text-red-600"
                     : "text-gray-700 hover:bg-gray-100"
                 }`}
                 title={!sidebarOpen ? item.label : undefined}
@@ -100,46 +98,18 @@ export default function DashboardLayout() {
           })}
         </nav>
 
-        {/* Profile Dropdown */}
+        {/* Logout Button */}
         <div className="p-4 border-t border-gray-200 shrink-0">
-          <div className="relative">
-            <button
-              onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors w-full ${
-                !sidebarOpen && "justify-center"
-              }`}
-              title={!sidebarOpen ? "Profile" : undefined}
-            >
-              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold shrink-0">
-                JD
-              </div>
-              {sidebarOpen && (
-                <span className="text-sm font-medium">John Doe</span>
-              )}
-            </button>
-
-            {/* Dropdown Menu */}
-            {profileDropdownOpen && sidebarOpen && (
-              <div className="absolute bottom-full left-0 mb-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg py-1">
-                <Link
-                  to="/dashboard/profile"
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                  onClick={() => setProfileDropdownOpen(false)}
-                >
-                  <User className="w-4 h-4" />
-                  Profile
-                </Link>
-                <Link
-                  to="/dashboard/settings"
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                  onClick={() => setProfileDropdownOpen(false)}
-                >
-                  <Settings className="w-4 h-4" />
-                  Settings
-                </Link>
-              </div>
-            )}
-          </div>
+          <button
+            onClick={handleLogout}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors w-full ${
+              !sidebarOpen && "justify-center"
+            }`}
+            title={!sidebarOpen ? "Logout" : undefined}
+          >
+            <LogOut className="w-5 h-5 shrink-0" />
+            {sidebarOpen && <span className="text-sm font-medium">Logout</span>}
+          </button>
         </div>
       </aside>
 
@@ -156,3 +126,4 @@ export default function DashboardLayout() {
     </div>
   );
 }
+

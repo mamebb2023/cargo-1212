@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import AuthLayout from "@/components/layouts/AuthLayout";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { loginSchema, type LoginFormData } from "@/lib/validations";
 
 export default function LoginPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<
@@ -38,9 +39,8 @@ export default function LoginPage() {
     // Handle login logic here
     console.log("Login:", result.data);
     toast.success("Login successful!");
-    // Reset form
-    setEmail("");
-    setPassword("");
+    // Redirect to bids page
+    navigate("/dashboard/bids");
   };
 
   return (
