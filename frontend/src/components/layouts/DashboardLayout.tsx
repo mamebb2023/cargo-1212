@@ -1,10 +1,9 @@
-import React, { useState } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   FileText,
   User,
-  LogOut,
   Package,
   ChevronLeft,
   Settings,
@@ -14,7 +13,6 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
 
   const menuItems = [
     {
@@ -65,9 +63,9 @@ export default function DashboardLayout() {
           </div>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 rounded-md bg-gray-100 hover:bg-gray-200 transition-all ml-4"
+            className="p-1.5 rounded-md bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-all ml-4"
           >
-            <ChevronLeft 
+            <ChevronLeft
               className={`size-4 text-gray-600 transition-transform duration-300 ${
                 sidebarOpen ? "" : "rotate-180"
               }`}
@@ -119,8 +117,12 @@ export default function DashboardLayout() {
             </button>
 
             {/* Dropdown Menu */}
-            {profileDropdownOpen && sidebarOpen && (
-              <div className="absolute bottom-full left-0 mb-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg py-1">
+            {profileDropdownOpen && (
+              <div
+                className={`absolute bottom-full mb-2 bg-white border border-gray-200 rounded-lg shadow-lg py-1 ${
+                  sidebarOpen ? "left-0 w-full" : "left-10 ml-2 w-48"
+                }`}
+              >
                 <Link
                   to="/dashboard/profile"
                   className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"

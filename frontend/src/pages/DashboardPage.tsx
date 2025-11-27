@@ -1,6 +1,8 @@
+import { useNavigate } from "react-router-dom";
 import { Package, FileText, TrendingUp, Users } from "lucide-react";
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const stats = [
     {
       label: "Total Bids",
@@ -106,7 +108,10 @@ export default function DashboardPage() {
             Quick Actions
           </h2>
           <div className="space-y-2">
-            <button className="w-full text-left px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => navigate("/dashboard/bids/create")}
+              className="w-full text-left px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <p className="text-sm font-medium text-gray-900">
                 Create New Bid
               </p>
@@ -114,13 +119,19 @@ export default function DashboardPage() {
                 Post a new freight transport opportunity
               </p>
             </button>
-            <button className="w-full text-left px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => navigate("/dashboard/bids")}
+              className="w-full text-left px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <p className="text-sm font-medium text-gray-900">View All Bids</p>
               <p className="text-xs text-gray-500 mt-1">
                 Browse available transport bids
               </p>
             </button>
-            <button className="w-full text-left px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => navigate("/dashboard/profile")}
+              className="w-full text-left px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <p className="text-sm font-medium text-gray-900">
                 Update Profile
               </p>

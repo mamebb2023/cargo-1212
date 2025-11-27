@@ -9,6 +9,7 @@ import DashboardPage from "@/pages/DashboardPage";
 import BidsPage from "@/pages/dashboard/BidsPage";
 import CreateBidPage from "@/pages/dashboard/CreateBidPage";
 import BidDetailsPage from "@/pages/dashboard/BidDetailsPage";
+import SubmitOfferPage from "@/pages/dashboard/SubmitOfferPage";
 import MyBidsPage from "@/pages/dashboard/MyBidsPage";
 import ProfilePage from "@/pages/dashboard/ProfilePage";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -55,6 +56,7 @@ function App() {
           <Route path="bids" element={<BidsPage />} />
           <Route path="bids/create" element={<CreateBidPage />} />
           <Route path="bids/:id" element={<BidDetailsPage />} />
+          <Route path="bids/:id/submit-offer" element={<SubmitOfferPage />} />
           <Route path="my-bids" element={<MyBidsPage />} />
           <Route path="profile" element={<ProfilePage />} />
         </Route>

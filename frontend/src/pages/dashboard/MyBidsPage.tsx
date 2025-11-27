@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Package, Eye, Trash2 } from "lucide-react";
+import { Package, Eye, Trash2, FileText, CheckCircle2, XCircle } from "lucide-react";
 
 export default function MyBidsPage() {
   const navigate = useNavigate();
@@ -55,6 +55,14 @@ export default function MyBidsPage() {
     },
   ]);
 
+  // Calculate statistics
+  const stats = useMemo(() => {
+    const total = myBids.length;
+    const active = myBids.filter((bid) => bid.status === "active").length;
+    const closed = myBids.filter((bid) => bid.status === "closed").length;
+    return { total, active, closed };
+  }, [myBids]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
@@ -66,8 +74,10 @@ export default function MyBidsPage() {
         </div>
       </div>
 
-      {/* Bids List */}
-      <div className="space-y-4">
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Bids List - Takes 2 columns on large screens */}
+        <div className="lg:col-span-2 space-y-4">
         {myBids.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
             <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -168,6 +178,56 @@ export default function MyBidsPage() {
             </div>
           ))
         )}
+        </div>
+
+        {/* Stats Panel - Right Side */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-6">
+              Bid Statistics
+            </h2>
+            <div className="space-y-4">
+              {/* Total Bids */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Bids</p>
+                  </div>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+              </div>
+
+              {/* Active Bids */}
+              <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Active</p>
+                  </div>
+                </div>
+                <p className="text-2xl font-bold text-green-700">{stats.active}</p>
+              </div>
+
+              {/* Closed Bids */}
+              <div className="flex items-center justify-between p-4 bg-gray-100 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center">
+                    <XCircle className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Closed</p>
+                  </div>
+                </div>
+                <p className="text-2xl font-bold text-gray-700">{stats.closed}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
