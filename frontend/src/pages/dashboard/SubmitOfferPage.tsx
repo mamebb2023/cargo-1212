@@ -35,14 +35,18 @@ export default function SubmitOfferPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.offerAmount || !formData.estimatedDeliveryTime || !formData.vehicleType) {
+    if (
+      !formData.offerAmount ||
+      !formData.estimatedDeliveryTime ||
+      !formData.vehicleType
+    ) {
       toast.error("Please fill in all required fields");
       return;
     }
 
     // Validate offer amount
     const offerAmount = parseFloat(formData.offerAmount);
-    const budgetAmount = parseFloat(bid.budget.replace(/[^\d.]/g, ""));
+    // const budgetAmount = parseFloat(bid.budget.replace(/[^\d.]/g, ""));
 
     if (isNaN(offerAmount) || offerAmount <= 0) {
       toast.error("Please enter a valid offer amount");
@@ -74,20 +78,28 @@ export default function SubmitOfferPage() {
 
       {/* Bid Summary */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Bid Summary</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          Bid Summary
+        </h2>
         <div className="space-y-3">
           <div>
-            <p className="text-sm font-medium text-gray-500">Transport Request</p>
+            <p className="text-sm font-medium text-gray-500">
+              Transport Request
+            </p>
             <p className="text-gray-900">{bid.title}</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-medium text-gray-500">Route</p>
-              <p className="text-gray-900">{bid.origin} → {bid.destination}</p>
+              <p className="text-gray-900">
+                {bid.origin} → {bid.destination}
+              </p>
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500">Cargo</p>
-              <p className="text-gray-900">{bid.cargoType} ({bid.weight})</p>
+              <p className="text-gray-900">
+                {bid.cargoType} ({bid.weight})
+              </p>
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500">Budget</p>
@@ -102,7 +114,10 @@ export default function SubmitOfferPage() {
       </div>
 
       {/* Offer Form */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white rounded-lg border border-gray-200 p-6 space-y-6"
+      >
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="offerAmount" className="flex items-center gap-2">
@@ -120,12 +135,16 @@ export default function SubmitOfferPage() {
               step="0.01"
             />
             <p className="text-xs text-gray-500">
-              Enter your competitive offer amount. Lower offers are more likely to win the bid.
+              Enter your competitive offer amount. Lower offers are more likely
+              to win the bid.
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="estimatedDeliveryTime" className="flex items-center gap-2">
+            <Label
+              htmlFor="estimatedDeliveryTime"
+              className="flex items-center gap-2"
+            >
               <Package className="w-4 h-4" />
               Estimated Delivery Time <span className="text-red-500">*</span>
             </Label>
@@ -134,7 +153,9 @@ export default function SubmitOfferPage() {
               type="text"
               placeholder="e.g., 3 days, 48 hours"
               value={formData.estimatedDeliveryTime}
-              onChange={(e) => handleChange("estimatedDeliveryTime", e.target.value)}
+              onChange={(e) =>
+                handleChange("estimatedDeliveryTime", e.target.value)
+              }
               required
             />
             <p className="text-xs text-gray-500">
@@ -168,9 +189,7 @@ export default function SubmitOfferPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="specialNotes">
-              Special Notes (Optional)
-            </Label>
+            <Label htmlFor="specialNotes">Special Notes (Optional)</Label>
             <textarea
               id="specialNotes"
               rows={4}
@@ -198,4 +217,3 @@ export default function SubmitOfferPage() {
     </div>
   );
 }
-
