@@ -51,11 +51,11 @@ export default function ServiceSection() {
             </p>
           </div>
 
-          <div className="flex-center flex-1 mt-6 w-full h-40">
+          <div className="flex-center flex-1 mt-6 w-full h-40 ">
             <img
-              src="/img/img-1.jpg"
+              src="/img/ss-1.png"
               alt="img"
-              className="h-96 rounded-xl object-cover object-center"
+              className="h-96 rounded-xl object-cover object-left border-4 border-primary/50"
             />
           </div>
         </motion.div>
@@ -85,9 +85,9 @@ export default function ServiceSection() {
 
             <div className="mt-6 w-full h-40">
               <img
-                src="/img/img-1.jpg"
+                src="/img/ss-3.png"
                 alt="img"
-                className="h-80 absolute top-1/3 rounded-tl-xl right-0 object-cover object-center"
+                className="h-80 absolute top-1/3 rounded-tl-xl right-0 object-cover object-center border-t-4 border-l-4 border-primary/50"
               />
             </div>
           </motion.div>
@@ -115,9 +115,9 @@ export default function ServiceSection() {
 
             <div className="mt-6 w-full h-40">
               <img
-                src="/img/img-1.jpg"
+                src="/img/ss-2.png"
                 alt="img"
-                className="h-80 absolute top-1/3 rounded-tr-xl left-0 object-cover object-center"
+                className="h-80 absolute top-1/3 rounded-tr-xl left-0 object-cover object-center border-t-4 border-r-4 border-primary/50"
               />
             </div>
           </motion.div>

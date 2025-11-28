@@ -284,9 +284,11 @@ export default function BidDetailsPage() {
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                                CBE
-                              </div>
+                              <img
+                                src="/img/cbe.png"
+                                alt="CBE"
+                                className="w-10 h-10"
+                              />
                               <span className="text-gray-900 font-medium">
                                 CBE
                               </span>
@@ -324,12 +326,11 @@ export default function BidDetailsPage() {
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                                TB
-                              </div>
-                              <span className="text-gray-900 font-medium">
-                                TeleBirr
-                              </span>
+                              <img
+                                src="/img/telebirr.png"
+                                alt="TeleBirr"
+                                className="h-10"
+                              />
                             </div>
                             <div className="flex items-center gap-3">
                               <span className="text-gray-900 font-mono text-lg font-semibold">
