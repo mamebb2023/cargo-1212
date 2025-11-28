@@ -17,9 +17,9 @@ export function Footer() {
 
   return (
     <footer className="relative w-full py-16 px-6 border-t border-gray-300 text-gray-700 overflow-hidden">
-      <div className="relative max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-7">
+      <div className="relative max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-7">
         {/* Brand */}
-        <div className="self-grid flex flex-col space-y-4">
+        <div className="md:col-span-2 self-grid flex flex-col space-y-4">
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded-md bg-blue-500" />
             <span className="text-xl font-semibold text-gray-900">

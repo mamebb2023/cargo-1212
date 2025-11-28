@@ -44,10 +44,18 @@ const CTASection = () => {
             }}
             transition={{ duration: 0.6, ease: "easeOut", delay: 0.4 }}
           >
-            <Button className="bg-white text-blue-900 hover:bg-blue-200 rounded-xl px-6 py-3">
+            <Button
+              variant="secondary"
+              className="rounded-xl px-6 py-3"
+              onClick={() => (window.location.href = "/register")}
+            >
               Register Now
             </Button>
-            <Button className="bg-blue-400 text-blue-900 hover:bg-blue-300 rounded-xl px-6 py-3">
+            <Button
+              variant="outline"
+              className="rounded-xl px-6 py-3 bg-white/10 border-white/30 text-white hover:bg-white/20"
+              onClick={() => (window.location.href = "/dashboard/bids")}
+            >
               View Active Bids
             </Button>
           </motion.div>
