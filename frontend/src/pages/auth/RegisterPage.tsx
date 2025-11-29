@@ -696,35 +696,37 @@ export default function RegisterPage() {
                 {/* Carrier Company Documents */}
                 {selectedRole === "carrier" && carrierSubcategory === "company" && (
                   <>
-                    <div className="space-y-2">
-                      <Label htmlFor="companyName">
-                        Company name <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="companyName"
-                        type="text"
-                        placeholder="Enter company name"
-                        value={carrierData.companyName}
-                        onChange={(e) =>
-                          updateCarrierData("companyName", e.target.value)
-                        }
-                      />
-                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="companyName">
+                          Company name <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="companyName"
+                          type="text"
+                          placeholder="Enter company name"
+                          value={carrierData.companyName}
+                          onChange={(e) =>
+                            updateCarrierData("companyName", e.target.value)
+                          }
+                        />
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="companyNumberOfTrucks">
-                        Company number of trucks <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="companyNumberOfTrucks"
-                        type="number"
-                        min="1"
-                        placeholder="Enter number of trucks"
-                        value={carrierData.companyNumberOfTrucks}
-                        onChange={(e) =>
-                          updateCarrierData("companyNumberOfTrucks", e.target.value)
-                        }
-                      />
+                      <div className="space-y-2">
+                        <Label htmlFor="companyNumberOfTrucks">
+                          Company number of trucks <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="companyNumberOfTrucks"
+                          type="number"
+                          min="1"
+                          placeholder="Enter number of trucks"
+                          value={carrierData.companyNumberOfTrucks}
+                          onChange={(e) =>
+                            updateCarrierData("companyNumberOfTrucks", e.target.value)
+                          }
+                        />
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
