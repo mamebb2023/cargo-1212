@@ -161,14 +161,14 @@ export default function BidDetailsPage() {
 
         <div className="pt-4 border-t border-gray-200">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">
+            <span className="flex flex-col md:flex-row text-gray-600">
               <strong>Posted:</strong> {bid.postedDate}
             </span>
-            <span className="text-gray-600">
+            <span className="flex flex-col md:flex-row text-gray-600">
               <strong>Offers Received:</strong> {bid.offers}
             </span>
             {bid.lowestOffer && (
-              <span className="text-green-600 font-semibold">
+              <span className="flex flex-col md:flex-row text-green-600 font-semibold">
                 <strong>Lowest Offer:</strong> {bid.lowestOffer}
               </span>
             )}

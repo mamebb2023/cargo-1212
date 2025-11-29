@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import AuthLayout from "@/components/layouts/AuthLayout";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { registerSchema, type RegisterFormData } from "@/lib/validations";
+import { getCountries, getCitiesByCountry } from "@/constant";
 import { Upload, FileText, X } from "lucide-react";
 
 type RegistrationStep = "form" | "role" | "documents";
@@ -14,15 +16,31 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<RegistrationStep>("form");
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
     password: "",
     confirmPassword: "",
+    country: "",
+    city: "",
+    street: "",
+    zipCode: "",
   });
+  const [availableCities, setAvailableCities] = useState<string[]>([]);
+  const countries = getCountries();
   const [selectedRole, setSelectedRole] = useState<
     "shipper" | "carrier" | null
   >(null);
+  const [carrierSubcategory, setCarrierSubcategory] = useState<
+    "company" | "plc" | "truckOwner" | null
+  >(null);
+  const [carrierData, setCarrierData] = useState({
+    companyNumberOfTrucks: "",
+    plcNumberOfTrucks: "",
+    truckLibrehNumber: "",
+    truckTinNumber: "",
+  });
   const [files, setFiles] = useState<{
     [key: string]: File | null;
   }>({});
@@ -37,13 +55,43 @@ export default function RegisterPage() {
     "Identity Document",
   ];
 
-  const carrierDocuments = [
-    "Vehicle Registration Certificate",
-    "Driver's License",
-    "Insurance Certificate",
-    "Business License",
-    "Tax Identification Certificate",
+  const getCarrierCompanyDocuments = () => [
+    "Company business registration Doc.",
+    "Company business license doc",
+    "Company competency certificate doc",
+    "Company tax clearance doc",
+    "Company vat certificate doc",
   ];
+
+  const getCarrierPLCDocuments = () => [
+    "Plc registration doc",
+    "Plc business license doc",
+    "Plc competency certificate doc",
+    "Plc tax clearance doc",
+    "Plc vat certificate doc",
+  ];
+
+  const getCarrierTruckOwnerDocuments = () => [
+    "Truck Business licence",
+  ];
+
+  const getRequiredDocuments = () => {
+    if (selectedRole === "shipper") {
+      return shipperDocuments;
+    }
+    if (selectedRole === "carrier") {
+      if (carrierSubcategory === "company") {
+        return getCarrierCompanyDocuments();
+      }
+      if (carrierSubcategory === "plc") {
+        return getCarrierPLCDocuments();
+      }
+      if (carrierSubcategory === "truckOwner") {
+        return getCarrierTruckOwnerDocuments();
+      }
+    }
+    return [];
+  };
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,8 +123,29 @@ export default function RegisterPage() {
 
   const handleDocumentsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const requiredDocuments =
-      selectedRole === "shipper" ? shipperDocuments : carrierDocuments;
+    const requiredDocuments = getRequiredDocuments();
+
+    // Validate number inputs for carriers
+    if (selectedRole === "carrier") {
+      if (carrierSubcategory === "company" && !carrierData.companyNumberOfTrucks) {
+        toast.error("Please enter the number of trucks");
+        return;
+      }
+      if (carrierSubcategory === "plc" && !carrierData.plcNumberOfTrucks) {
+        toast.error("Please enter the number of trucks");
+        return;
+      }
+      if (carrierSubcategory === "truckOwner") {
+        if (!carrierData.truckLibrehNumber) {
+          toast.error("Please enter the truck libreh number");
+          return;
+        }
+        if (!carrierData.truckTinNumber) {
+          toast.error("Please enter the truck TIN number");
+          return;
+        }
+      }
+    }
 
     const missingDocuments = requiredDocuments.filter((doc) => !files[doc]);
 
@@ -91,6 +160,8 @@ export default function RegisterPage() {
     console.log("Registration data:", {
       ...formData,
       role: selectedRole,
+      carrierSubcategory,
+      carrierData,
       files,
     });
 
@@ -104,11 +175,32 @@ export default function RegisterPage() {
   };
 
   const updateField = (field: keyof typeof formData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const updated = { ...prev, [field]: value };
+      // When country changes, reset city and update available cities
+      if (field === "country") {
+        updated.city = "";
+        setAvailableCities(getCitiesByCountry(value));
+      }
+      return updated;
+    });
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
+
+  const updateCarrierData = (field: keyof typeof carrierData, value: string) => {
+    setCarrierData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Initialize cities when country is selected
+  useEffect(() => {
+    if (formData.country) {
+      setAvailableCities(getCitiesByCountry(formData.country));
+    } else {
+      setAvailableCities([]);
+    }
+  }, [formData.country]);
 
   return (
     <AuthLayout>
@@ -162,96 +254,210 @@ export default function RegisterPage() {
               </div>
 
               <form onSubmit={handleFormSubmit} className="space-y-4">
-                <div className="flex-1 flex flex-col md:flex-row gap-4">
-                  <div className="flex-1 space-y-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input
-                      id="name"
-                      type="text"
-                      placeholder="Enter your name"
-                      value={formData.name}
-                      onChange={(e) => updateField("name", e.target.value)}
-                      className={errors.name ? "border-destructive" : ""}
-                    />
-                    {errors.name && (
-                      <p className="text-xs text-destructive max-w-xs">
-                        {errors.name}
-                      </p>
-                    )}
+                <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+                  {/* Left side - Main form fields */}
+                  <div className="flex-1 space-y-4">
+                    <div className="flex-1 flex flex-col md:flex-row gap-4">
+                      <div className="flex-1 space-y-2">
+                        <Label htmlFor="firstName">First name</Label>
+                        <Input
+                          id="firstName"
+                          type="text"
+                          placeholder="Enter your first name"
+                          value={formData.firstName}
+                          onChange={(e) => updateField("firstName", e.target.value)}
+                          className={errors.firstName ? "border-destructive" : ""}
+                        />
+                        {errors.firstName && (
+                          <p className="text-xs text-destructive max-w-xs">
+                            {errors.firstName}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex-1 space-y-2">
+                        <Label htmlFor="lastName">Last name</Label>
+                        <Input
+                          id="lastName"
+                          type="text"
+                          placeholder="Enter your last name"
+                          value={formData.lastName}
+                          onChange={(e) => updateField("lastName", e.target.value)}
+                          className={errors.lastName ? "border-destructive" : ""}
+                        />
+                        {errors.lastName && (
+                          <p className="text-xs text-destructive max-w-xs">
+                            {errors.lastName}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="Enter your email"
+                        value={formData.email}
+                        onChange={(e) => updateField("email", e.target.value)}
+                        className={errors.email ? "border-destructive" : ""}
+                      />
+                      {errors.email && (
+                        <p className="text-xs text-destructive max-w-xs">
+                          {errors.email}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="+251 9XX XXX XXX"
+                        value={formData.phone}
+                        onChange={(e) => updateField("phone", e.target.value)}
+                        className={errors.phone ? "border-destructive" : ""}
+                      />
+                      {errors.phone && (
+                        <p className="text-xs text-destructive max-w-xs">
+                          {errors.phone}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Password</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="********"
+                          value={formData.password}
+                          onChange={(e) => updateField("password", e.target.value)}
+                          className={errors.password ? "border-destructive" : ""}
+                        />
+                        {errors.password && (
+                          <p className="text-xs text-destructive max-w-xs">
+                            {errors.password}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="confirmPassword">Confirm Password</Label>
+                        <Input
+                          id="confirmPassword"
+                          type="password"
+                          placeholder="********"
+                          value={formData.confirmPassword}
+                          onChange={(e) =>
+                            updateField("confirmPassword", e.target.value)
+                          }
+                          className={
+                            errors.confirmPassword ? "border-destructive" : ""
+                          }
+                        />
+                        {errors.confirmPassword && (
+                          <p className="text-xs text-destructive max-w-xs">
+                            {errors.confirmPassword}
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex-1 space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="Enter your email"
-                      value={formData.email}
-                      onChange={(e) => updateField("email", e.target.value)}
-                      className={errors.email ? "border-destructive" : ""}
-                    />
-                    {errors.email && (
-                      <p className="text-xs text-destructive max-w-xs">
-                        {errors.email}
-                      </p>
-                    )}
-                  </div>
-                </div>
+                  {/* Right side - Address Fields */}
+                  <div className="flex-1 space-y-4 pt-2 lg:pt-0 lg:pl-4 lg:border-l border-t lg:border-t-0 border-border">
+                    <h3 className="text-sm font-semibold text-foreground">
+                      Address Information
+                    </h3>
+                    
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <div className="flex-1 space-y-2">
+                        <Label htmlFor="country">Country</Label>
+                        <Select
+                          id="country"
+                          value={formData.country}
+                          onChange={(e) => updateField("country", e.target.value)}
+                          className={errors.country ? "border-destructive" : ""}
+                        >
+                          <option value="">Select a country</option>
+                          {countries.map((country) => (
+                            <option key={country} value={country}>
+                              {country}
+                            </option>
+                          ))}
+                        </Select>
+                        {errors.country && (
+                          <p className="text-xs text-destructive max-w-xs">
+                            {errors.country}
+                          </p>
+                        )}
+                      </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+251 9XX XXX XXX"
-                    value={formData.phone}
-                    onChange={(e) => updateField("phone", e.target.value)}
-                    className={errors.phone ? "border-destructive" : ""}
-                  />
-                  {errors.phone && (
-                    <p className="text-xs text-destructive max-w-xs">
-                      {errors.phone}
-                    </p>
-                  )}
-                </div>
+                      <div className="flex-1 space-y-2">
+                        <Label htmlFor="city">City</Label>
+                        <Select
+                          id="city"
+                          value={formData.city}
+                          onChange={(e) => updateField("city", e.target.value)}
+                          disabled={!formData.country}
+                          className={errors.city ? "border-destructive" : ""}
+                        >
+                          <option value="">
+                            {formData.country
+                              ? "Select a city"
+                              : "Select a country first"}
+                          </option>
+                          {availableCities.map((city) => (
+                            <option key={city} value={city}>
+                              {city}
+                            </option>
+                          ))}
+                        </Select>
+                        {errors.city && (
+                          <p className="text-xs text-destructive max-w-xs">
+                            {errors.city}
+                          </p>
+                        )}
+                      </div>
+                    </div>
 
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="********"
-                      value={formData.password}
-                      onChange={(e) => updateField("password", e.target.value)}
-                      className={errors.password ? "border-destructive" : ""}
-                    />
-                    {errors.password && (
-                      <p className="text-xs text-destructive max-w-xs">
-                        {errors.password}
-                      </p>
-                    )}
-                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="street">Street</Label>
+                      <Input
+                        id="street"
+                        type="text"
+                        placeholder="Enter street address"
+                        value={formData.street}
+                        onChange={(e) => updateField("street", e.target.value)}
+                        className={errors.street ? "border-destructive" : ""}
+                      />
+                      {errors.street && (
+                        <p className="text-xs text-destructive max-w-xs">
+                          {errors.street}
+                        </p>
+                      )}
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm Password</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      placeholder="********"
-                      value={formData.confirmPassword}
-                      onChange={(e) =>
-                        updateField("confirmPassword", e.target.value)
-                      }
-                      className={
-                        errors.confirmPassword ? "border-destructive" : ""
-                      }
-                    />
-                    {errors.confirmPassword && (
-                      <p className="text-xs text-destructive max-w-xs">
-                        {errors.confirmPassword}
-                      </p>
-                    )}
+                    <div className="space-y-2">
+                      <Label htmlFor="zipCode">Zip code</Label>
+                      <Input
+                        id="zipCode"
+                        type="text"
+                        placeholder="Enter zip code"
+                        value={formData.zipCode}
+                        onChange={(e) => updateField("zipCode", e.target.value)}
+                        className={errors.zipCode ? "border-destructive" : ""}
+                      />
+                      {errors.zipCode && (
+                        <p className="text-xs text-destructive max-w-xs">
+                          {errors.zipCode}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -284,7 +490,10 @@ export default function RegisterPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                 <button
                   type="button"
-                  onClick={() => setSelectedRole("shipper")}
+                  onClick={() => {
+                    setSelectedRole("shipper");
+                    setCarrierSubcategory(null);
+                  }}
                   className={`p-4 border-2 rounded-xl transition-all text-left ${
                     selectedRole === "shipper"
                       ? "border-primary bg-primary/10"
@@ -304,7 +513,10 @@ export default function RegisterPage() {
 
                 <button
                   type="button"
-                  onClick={() => setSelectedRole("carrier")}
+                  onClick={() => {
+                    setSelectedRole("carrier");
+                    setCarrierSubcategory(null);
+                  }}
                   className={`p-4 border-2 rounded-xl transition-all text-left ${
                     selectedRole === "carrier"
                       ? "border-primary bg-primary/10"
@@ -322,9 +534,71 @@ export default function RegisterPage() {
                 </button>
               </div>
 
+              {/* Carrier Subcategories */}
+              {selectedRole === "carrier" && (
+                <div className="mt-6 space-y-4">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Select Carrier Type
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setCarrierSubcategory("company")}
+                      className={`p-4 border-2 rounded-xl transition-all text-left ${
+                        carrierSubcategory === "company"
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50 hover:bg-primary/5"
+                      }`}
+                    >
+                      <h4 className="font-semibold mb-1 text-foreground">
+                        Company
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        Registered business company
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCarrierSubcategory("plc")}
+                      className={`p-4 border-2 rounded-xl transition-all text-left ${
+                        carrierSubcategory === "plc"
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50 hover:bg-primary/5"
+                      }`}
+                    >
+                      <h4 className="font-semibold mb-1 text-foreground">PLC</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Public Limited Company
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCarrierSubcategory("truckOwner")}
+                      className={`p-4 border-2 rounded-xl transition-all text-left ${
+                        carrierSubcategory === "truckOwner"
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50 hover:bg-primary/5"
+                      }`}
+                    >
+                      <h4 className="font-semibold mb-1 text-foreground">
+                        Truck Owner
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        Individual truck owner
+                      </p>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-3 mt-8">
                 <Button
-                  onClick={() => setStep("form")}
+                  onClick={() => {
+                    setStep("form");
+                    setCarrierSubcategory(null);
+                  }}
                   variant="outline"
                   className="flex-1"
                 >
@@ -332,15 +606,21 @@ export default function RegisterPage() {
                 </Button>
                 <Button
                   onClick={() => {
-                    if (selectedRole) {
+                    if (selectedRole === "shipper") {
                       setStep("documents");
+                    } else if (selectedRole === "carrier") {
+                      if (carrierSubcategory) {
+                        setStep("documents");
+                      } else {
+                        toast.error("Please select a carrier type to continue");
+                      }
                     } else {
                       toast.error("Please select a role to continue");
                     }
                   }}
                   variant="secondary"
                   className="flex-1"
-                  disabled={!selectedRole}
+                  disabled={!selectedRole || (selectedRole === "carrier" && !carrierSubcategory)}
                 >
                   Continue
                 </Button>
@@ -361,50 +641,253 @@ export default function RegisterPage() {
               </div>
 
               <form onSubmit={handleDocumentsSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {(selectedRole === "shipper"
-                    ? shipperDocuments
-                    : carrierDocuments
-                  ).map((docName) => (
-                    <div key={docName} className="space-y-2">
-                      <Label>{docName} *</Label>
-                      {files[docName] ? (
-                        <div className="flex items-center gap-2 p-2 border border-border rounded-lg bg-muted">
-                          <FileText className="size-4" />
-                          <span className="text-sm flex-1 truncate">
-                            {files[docName]?.name}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleFileChange(docName, null)}
-                            className="text-destructive hover:text-destructive/80 shrink-0"
-                          >
-                            <X className="size-4 hover:bg-red-100" />
-                          </button>
-                        </div>
-                      ) : (
-                        <label className="flex flex-col items-center justify-center w-full p-2 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                          <div className="flex gap-2 items-center justify-center p4">
-                            <Upload className="size-4 text-muted-foreground" />
-                            <p className="text-sm text-muted-foreground text-center px-2">
-                              Click to upload or drag and drop
-                            </p>
+                {/* Shipper Documents */}
+                {selectedRole === "shipper" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {shipperDocuments.map((docName) => (
+                      <div key={docName} className="space-y-2">
+                        <Label>{docName} <span className="text-red-500">*</span></Label>
+                        {files[docName] ? (
+                          <div className="flex items-center gap-2 p-2 border border-border rounded-lg bg-muted">
+                            <FileText className="size-4" />
+                            <span className="text-sm flex-1 truncate">
+                              {files[docName]?.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleFileChange(docName, null)}
+                              className="text-destructive hover:text-destructive/80 shrink-0"
+                            >
+                              <X className="size-4 hover:bg-red-100" />
+                            </button>
                           </div>
+                        ) : (
+                          <label className="flex flex-col items-center justify-center w-full p-2 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                            <div className="flex gap-2 items-center justify-center p4">
+                              <Upload className="size-4 text-muted-foreground" />
+                              <p className="text-sm text-muted-foreground text-center px-2">
+                                Click to upload or drag and drop
+                              </p>
+                            </div>
 
-                          <input
-                            type="file"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0] || null;
-                              handleFileChange(docName, file);
-                            }}
-                            accept=".pdf,.jpg,.jpeg,.png"
-                          />
-                        </label>
-                      )}
+                            <input
+                              type="file"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0] || null;
+                                handleFileChange(docName, file);
+                              }}
+                              accept=".pdf,.jpg,.jpeg,.png"
+                            />
+                          </label>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Carrier Company Documents */}
+                {selectedRole === "carrier" && carrierSubcategory === "company" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="companyNumberOfTrucks">
+                        Company number of trucks <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="companyNumberOfTrucks"
+                        type="number"
+                        min="1"
+                        placeholder="Enter number of trucks"
+                        value={carrierData.companyNumberOfTrucks}
+                        onChange={(e) =>
+                          updateCarrierData("companyNumberOfTrucks", e.target.value)
+                        }
+                      />
                     </div>
-                  ))}
-                </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {getCarrierCompanyDocuments().map((docName) => (
+                        <div key={docName} className="space-y-2">
+                          <Label>{docName} <span className="text-red-500">*</span></Label>
+                          {files[docName] ? (
+                            <div className="flex items-center gap-2 p-2 border border-border rounded-lg bg-muted">
+                              <FileText className="size-4" />
+                              <span className="text-sm flex-1 truncate">
+                                {files[docName]?.name}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleFileChange(docName, null)}
+                                className="text-destructive hover:text-destructive/80 shrink-0"
+                              >
+                                <X className="size-4 hover:bg-red-100" />
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="flex flex-col items-center justify-center w-full p-2 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                              <div className="flex gap-2 items-center justify-center p4">
+                                <Upload className="size-4 text-muted-foreground" />
+                                <p className="text-sm text-muted-foreground text-center px-2">
+                                  Click to upload or drag and drop
+                                </p>
+                              </div>
+
+                              <input
+                                type="file"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0] || null;
+                                  handleFileChange(docName, file);
+                                }}
+                                accept=".pdf,.jpg,.jpeg,.png"
+                              />
+                            </label>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Carrier PLC Documents */}
+                {selectedRole === "carrier" && carrierSubcategory === "plc" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="plcNumberOfTrucks">
+                        PLC number of trucks <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="plcNumberOfTrucks"
+                        type="number"
+                        min="1"
+                        placeholder="Enter number of trucks"
+                        value={carrierData.plcNumberOfTrucks}
+                        onChange={(e) =>
+                          updateCarrierData("plcNumberOfTrucks", e.target.value)
+                        }
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {getCarrierPLCDocuments().map((docName) => (
+                        <div key={docName} className="space-y-2">
+                          <Label>{docName} <span className="text-red-500">*</span></Label>
+                          {files[docName] ? (
+                            <div className="flex items-center gap-2 p-2 border border-border rounded-lg bg-muted">
+                              <FileText className="size-4" />
+                              <span className="text-sm flex-1 truncate">
+                                {files[docName]?.name}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleFileChange(docName, null)}
+                                className="text-destructive hover:text-destructive/80 shrink-0"
+                              >
+                                <X className="size-4 hover:bg-red-100" />
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="flex flex-col items-center justify-center w-full p-2 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                              <div className="flex gap-2 items-center justify-center p4">
+                                <Upload className="size-4 text-muted-foreground" />
+                                <p className="text-sm text-muted-foreground text-center px-2">
+                                  Click to upload or drag and drop
+                                </p>
+                              </div>
+
+                              <input
+                                type="file"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0] || null;
+                                  handleFileChange(docName, file);
+                                }}
+                                accept=".pdf,.jpg,.jpeg,.png"
+                              />
+                            </label>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Carrier Truck Owner Documents */}
+                {selectedRole === "carrier" && carrierSubcategory === "truckOwner" && (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="truckLibrehNumber">
+                          Truck libreh number <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="truckLibrehNumber"
+                          type="text"
+                          placeholder="Enter truck libreh number"
+                          value={carrierData.truckLibrehNumber}
+                          onChange={(e) =>
+                            updateCarrierData("truckLibrehNumber", e.target.value)
+                          }
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="truckTinNumber">Truck TIN Number <span className="text-red-500">*</span></Label>
+                        <Input
+                          id="truckTinNumber"
+                          type="text"
+                          placeholder="Enter truck TIN number"
+                          value={carrierData.truckTinNumber}
+                          onChange={(e) =>
+                            updateCarrierData("truckTinNumber", e.target.value)
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {getCarrierTruckOwnerDocuments().map((docName) => (
+                        <div key={docName} className="space-y-2">
+                          <Label>{docName} <span className="text-red-500">*</span></Label>
+                          {files[docName] ? (
+                            <div className="flex items-center gap-2 p-2 border border-border rounded-lg bg-muted">
+                              <FileText className="size-4" />
+                              <span className="text-sm flex-1 truncate">
+                                {files[docName]?.name}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleFileChange(docName, null)}
+                                className="text-destructive hover:text-destructive/80 shrink-0"
+                              >
+                                <X className="size-4 hover:bg-red-100" />
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="flex flex-col items-center justify-center w-full p-2 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                              <div className="flex gap-2 items-center justify-center p4">
+                                <Upload className="size-4 text-muted-foreground" />
+                                <p className="text-sm text-muted-foreground text-center px-2">
+                                  Click to upload or drag and drop
+                                </p>
+                              </div>
+
+                              <input
+                                type="file"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0] || null;
+                                  handleFileChange(docName, file);
+                                }}
+                                accept=".pdf,.jpg,.jpeg,.png"
+                              />
+                            </label>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
 
                 <div className="flex gap-3">
                   <Button

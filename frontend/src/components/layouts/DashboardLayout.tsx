@@ -44,7 +44,7 @@ export default function DashboardLayout() {
       {/* Sidebar */}
       <aside
         className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 flex flex-col ${
-          sidebarOpen ? "w-64" : "w-20"
+          sidebarOpen ? "w-64" : "w-16"
         }`}
       >
         {/* Logo Section */}
@@ -61,9 +61,10 @@ export default function DashboardLayout() {
               </Link>
             )}
           </div>
+
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 rounded-md bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-all ml-4"
+            className="p-1.5 rounded-md bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-all ml-2"
           >
             <ChevronLeft
               className={`size-4 text-gray-600 transition-transform duration-300 ${
@@ -74,7 +75,7 @@ export default function DashboardLayout() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-2 md:p-4 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
@@ -82,7 +83,9 @@ export default function DashboardLayout() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                className={`flex items-center justify-center ${
+                  sidebarOpen ? "justify-start" : "justify-center"
+                } gap-3 px-2 py-2 rounded-lg transition-colors ${
                   active
                     ? "bg-blue-50 text-blue-600"
                     : "text-gray-700 hover:bg-gray-100"

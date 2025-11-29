@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { ArrowLeft, CreditCard } from "lucide-react";
 
 export default function CreateBidPage() {
@@ -17,7 +18,9 @@ export default function CreateBidPage() {
     cargoType: "",
     weight: "",
     budget: "",
+    cpoAmount: "",
     deadline: "",
+    status: "Open",
     specialRequirements: "",
   });
 
@@ -40,7 +43,9 @@ export default function CreateBidPage() {
       "cargoType",
       "weight",
       "budget",
+      "cpoAmount",
       "deadline",
+      "status",
     ];
     
     const missingFields = requiredFields.filter((field) => !formData[field as keyof typeof formData]);
@@ -93,6 +98,10 @@ export default function CreateBidPage() {
                   <p className="text-sm font-medium text-gray-500">Budget</p>
                   <p className="text-gray-900">ETB {formData.budget}</p>
                 </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">CPO Amount</p>
+                  <p className="text-gray-900">ETB {formData.cpoAmount}</p>
+                </div>
                 <div className="col-span-2">
                   <p className="text-sm font-medium text-gray-500">Description</p>
                   <p className="text-gray-900">{formData.description}</p>
@@ -124,6 +133,10 @@ export default function CreateBidPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-500">Deadline</p>
                   <p className="text-gray-900">{formData.deadline}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Status</p>
+                  <p className="text-gray-900">{formData.status}</p>
                 </div>
                 {formData.specialRequirements && (
                   <div className="col-span-2">
@@ -290,6 +303,22 @@ export default function CreateBidPage() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="cpoAmount">
+                CPO Amount <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="cpoAmount"
+                type="number"
+                placeholder="e.g., 5000"
+                value={formData.cpoAmount}
+                onChange={(e) => handleChange("cpoAmount", e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="deadline">
                 Deadline <span className="text-red-500">*</span>
               </Label>
@@ -300,6 +329,22 @@ export default function CreateBidPage() {
                 onChange={(e) => handleChange("deadline", e.target.value)}
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">
+                Status <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                id="status"
+                value={formData.status}
+                onChange={(e) => handleChange("status", e.target.value)}
+                required
+              >
+                <option value="Open">Open</option>
+                <option value="Assigned">Assigned</option>
+                <option value="Closed">Closed</option>
+              </Select>
             </div>
           </div>
 

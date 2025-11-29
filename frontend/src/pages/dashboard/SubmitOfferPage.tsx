@@ -13,6 +13,7 @@ export default function SubmitOfferPage() {
     offerAmount: "",
     estimatedDeliveryTime: "",
     vehicleType: "",
+    cpoServiceNumber: "",
     specialNotes: "",
   });
 
@@ -38,7 +39,8 @@ export default function SubmitOfferPage() {
     if (
       !formData.offerAmount ||
       !formData.estimatedDeliveryTime ||
-      !formData.vehicleType
+      !formData.vehicleType ||
+      !formData.cpoServiceNumber
     ) {
       toast.error("Please fill in all required fields");
       return;
@@ -186,6 +188,21 @@ export default function SubmitOfferPage() {
             <p className="text-xs text-gray-500">
               Select the type of vehicle you will use for this transport
             </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="cpoServiceNumber">
+              CPO Service Number <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="cpoServiceNumber"
+              type="number"
+              placeholder="e.g., 12345"
+              value={formData.cpoServiceNumber}
+              onChange={(e) => handleChange("cpoServiceNumber", e.target.value)}
+              required
+              min="0"
+            />
           </div>
 
           <div className="space-y-2">
