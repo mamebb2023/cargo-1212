@@ -36,6 +36,7 @@ export default function RegisterPage() {
     "company" | "plc" | "truckOwner" | null
   >(null);
   const [carrierData, setCarrierData] = useState({
+    companyName: "",
     companyNumberOfTrucks: "",
     plcNumberOfTrucks: "",
     truckLibrehNumber: "",
@@ -127,9 +128,15 @@ export default function RegisterPage() {
 
     // Validate number inputs for carriers
     if (selectedRole === "carrier") {
-      if (carrierSubcategory === "company" && !carrierData.companyNumberOfTrucks) {
-        toast.error("Please enter the number of trucks");
-        return;
+      if (carrierSubcategory === "company") {
+        if (!carrierData.companyName) {
+          toast.error("Please enter the company name");
+          return;
+        }
+        if (!carrierData.companyNumberOfTrucks) {
+          toast.error("Please enter the number of trucks");
+          return;
+        }
       }
       if (carrierSubcategory === "plc" && !carrierData.plcNumberOfTrucks) {
         toast.error("Please enter the number of trucks");
@@ -689,6 +696,21 @@ export default function RegisterPage() {
                 {/* Carrier Company Documents */}
                 {selectedRole === "carrier" && carrierSubcategory === "company" && (
                   <>
+                    <div className="space-y-2">
+                      <Label htmlFor="companyName">
+                        Company name <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="companyName"
+                        type="text"
+                        placeholder="Enter company name"
+                        value={carrierData.companyName}
+                        onChange={(e) =>
+                          updateCarrierData("companyName", e.target.value)
+                        }
+                      />
+                    </div>
+
                     <div className="space-y-2">
                       <Label htmlFor="companyNumberOfTrucks">
                         Company number of trucks <span className="text-red-500">*</span>
