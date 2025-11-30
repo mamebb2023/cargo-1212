@@ -128,11 +128,11 @@ export default function RegisterPage() {
 
     // Validate number inputs for carriers
     if (selectedRole === "carrier") {
+      if (!carrierData.companyName) {
+        toast.error("Please enter the company name");
+        return;
+      }
       if (carrierSubcategory === "company") {
-        if (!carrierData.companyName) {
-          toast.error("Please enter the company name");
-          return;
-        }
         if (!carrierData.companyNumberOfTrucks) {
           toast.error("Please enter the number of trucks");
           return;
@@ -776,20 +776,37 @@ export default function RegisterPage() {
                 {/* Carrier PLC Documents */}
                 {selectedRole === "carrier" && carrierSubcategory === "plc" && (
                   <>
-                    <div className="space-y-2">
-                      <Label htmlFor="plcNumberOfTrucks">
-                        PLC number of trucks <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="plcNumberOfTrucks"
-                        type="number"
-                        min="1"
-                        placeholder="Enter number of trucks"
-                        value={carrierData.plcNumberOfTrucks}
-                        onChange={(e) =>
-                          updateCarrierData("plcNumberOfTrucks", e.target.value)
-                        }
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="companyName">
+                          Company name <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="companyName"
+                          type="text"
+                          placeholder="Enter company name"
+                          value={carrierData.companyName}
+                          onChange={(e) =>
+                            updateCarrierData("companyName", e.target.value)
+                          }
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="plcNumberOfTrucks">
+                          PLC number of trucks <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="plcNumberOfTrucks"
+                          type="number"
+                          min="1"
+                          placeholder="Enter number of trucks"
+                          value={carrierData.plcNumberOfTrucks}
+                          onChange={(e) =>
+                            updateCarrierData("plcNumberOfTrucks", e.target.value)
+                          }
+                        />
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -839,6 +856,21 @@ export default function RegisterPage() {
                 {/* Carrier Truck Owner Documents */}
                 {selectedRole === "carrier" && carrierSubcategory === "truckOwner" && (
                   <>
+                    <div className="space-y-2">
+                      <Label htmlFor="companyName">
+                        Company name <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="companyName"
+                        type="text"
+                        placeholder="Enter company name"
+                        value={carrierData.companyName}
+                        onChange={(e) =>
+                          updateCarrierData("companyName", e.target.value)
+                        }
+                      />
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="truckLibrehNumber">

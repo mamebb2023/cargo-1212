@@ -84,7 +84,7 @@ export default function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          #1 Cargo and Logistics Transport Bidding Platform
+          #1 Cargo Transport Bidding Platform
         </motion.span>
 
         <motion.h1
@@ -93,8 +93,8 @@ export default function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1 }}
         >
-          <span className="text-primary">Streamline</span>{" "}
-          Your<br/> Logistics{" "}
+          <span className="text-primary">Streamline</span> Your
+          <br /> Logistics{" "}
           <span className="rounded-3xl px-3 md:px-6 pb-1 text-white bg-linear-to-r from-primary to-blue-800">
             Transport
           </span>
