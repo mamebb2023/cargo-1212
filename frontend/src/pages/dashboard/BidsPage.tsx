@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Filter, Package, Plus } from "lucide-react";
+import { bidsApi } from "@/lib/api";
+import { toast } from "react-hot-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function BidsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -13,99 +17,71 @@ export default function BidsPage() {
   const [offersFilter, setOffersFilter] = useState<string>("all");
   const [cargoTypeFilter, setCargoTypeFilter] = useState<string>("all");
 
-  const bids = [
-    {
-      id: 1,
-      title: "Freight Transport from Addis Ababa to Dire Dawa",
-      description:
-        "Transport 50 tons of construction materials. Delivery required within 3 days.",
-      status: "active",
-      budget: "ETB 25,000",
-      postedDate: "2024-01-15",
-      deadline: "2024-01-18",
-      offers: 5,
-      lowestOffer: "ETB 22,500",
-      shipperName: "ABC Construction Ltd.",
-      origin: "Addis Ababa",
-      destination: "Dire Dawa",
-      cargoType: "Construction Materials",
-      weight: "50 tons",
-    },
-    {
-      id: 2,
-      title: "Cargo Delivery to Mekelle",
-      description:
-        "Urgent delivery of medical supplies. Requires refrigerated transport.",
-      status: "active",
-      budget: "ETB 35,000",
-      postedDate: "2024-01-14",
-      deadline: "2024-01-17",
-      offers: 8,
-      lowestOffer: "ETB 32,000",
-      shipperName: "Health Supplies Co.",
-      origin: "Addis Ababa",
-      destination: "Mekelle",
-      cargoType: "Medical Supplies",
-      weight: "2 tons",
-    },
-    {
-      id: 3,
-      title: "Bulk Goods Transport to Bahir Dar",
-      description:
-        "Regular transport service for monthly delivery. Long-term contract available.",
-      status: "pending",
-      budget: "ETB 40,000",
-      postedDate: "2024-01-13",
-      deadline: "2024-01-20",
-      offers: 3,
-      lowestOffer: "ETB 38,500",
-      shipperName: "Distribution Services Inc.",
-      origin: "Addis Ababa",
-      destination: "Bahir Dar",
-      cargoType: "General Goods",
-      weight: "15 tons",
-    },
-    {
-      id: 4,
-      title: "Express Delivery to Hawassa",
-      description: "Small cargo delivery. Same-day service preferred.",
-      status: "closed",
-      budget: "ETB 15,000",
-      postedDate: "2024-01-10",
-      deadline: "2024-01-12",
-      offers: 12,
-      lowestOffer: "ETB 13,500",
-      shipperName: "Express Logistics",
-      origin: "Addis Ababa",
-      destination: "Hawassa",
-      cargoType: "Small Packages",
-      weight: "500 kg",
-    },
-  ];
+  const [bids, setBids] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [paidBids, setPaidBids] = useState<number[]>([]);
+
+  // Fetch bids on component mount
+  useEffect(() => {
+    fetchBids();
+  }, []);
+
+  const fetchBids = async () => {
+    try {
+      setLoading(true);
+      const response = await bidsApi.getBids();
+      // Ensure we always set an array
+      const bidsData = Array.isArray(response.data) ? response.data : [];
+      setBids(bidsData);
+
+      // For now, we'll assume all bids are unpaid for demo
+      // In real app, this would check user's payment status for each bid
+      setPaidBids([]);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to load bids";
+      toast.error(errorMessage);
+      setBids([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Process bids data to add payment status
+  const processedBids = bids.map((bid) => ({
+    ...bid,
+    isPaid: paidBids.includes(bid.id),
+  }));
 
   // Extract unique cargo types for filter
-  const cargoTypes = Array.from(new Set(bids.map((bid) => bid.cargoType)));
+  const cargoTypes = Array.from(
+    new Set(processedBids.map((bid) => bid.cargoType))
+  );
 
-  const filteredBids = bids.filter((bid) => {
+  const filteredBids = processedBids.filter((bid) => {
     const matchesSearch =
       bid.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       bid.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = filterStatus === "all" || bid.status === filterStatus;
-    
+
     // Deadline filter (compare dates - simple implementation)
     let matchesDeadline = true;
     if (deadlineFilter === "urgent") {
       const deadlineDate = new Date(bid.deadline);
       const today = new Date();
-      const diffDays = Math.ceil((deadlineDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const diffDays = Math.ceil(
+        (deadlineDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      );
       matchesDeadline = diffDays <= 3;
     } else if (deadlineFilter === "soon") {
       const deadlineDate = new Date(bid.deadline);
       const today = new Date();
-      const diffDays = Math.ceil((deadlineDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const diffDays = Math.ceil(
+        (deadlineDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      );
       matchesDeadline = diffDays > 3 && diffDays <= 7;
     }
-    
+
     // Offers filter
     let matchesOffers = true;
     if (offersFilter === "low") {
@@ -115,11 +91,18 @@ export default function BidsPage() {
     } else if (offersFilter === "high") {
       matchesOffers = bid.offers > 8;
     }
-    
+
     // Cargo type filter
-    const matchesCargoType = cargoTypeFilter === "all" || bid.cargoType === cargoTypeFilter;
-    
-    return matchesSearch && matchesStatus && matchesDeadline && matchesOffers && matchesCargoType;
+    const matchesCargoType =
+      cargoTypeFilter === "all" || bid.cargoType === cargoTypeFilter;
+
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesDeadline &&
+      matchesOffers &&
+      matchesCargoType
+    );
   });
 
   return (
@@ -132,14 +115,16 @@ export default function BidsPage() {
             competitive offers to win contracts.
           </p>
         </div>
-        <Button 
-          variant="secondary" 
-          onClick={() => navigate("/dashboard/bids/create")}
-          className="flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Create a Bid
-        </Button>
+        {user?.role === "shipper" && (
+          <Button
+            variant="secondary"
+            onClick={() => navigate("/dashboard/bids/create")}
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Create a Bid
+          </Button>
+        )}
       </div>
 
       {/* Main Content Grid */}
@@ -148,8 +133,12 @@ export default function BidsPage() {
         <div className="lg:col-span-3 space-y-6">
           {/* Search and Filter */}
           <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className={`flex flex-col gap-4 ${showMobileFilters ? "lg:flex-row" : ""}`}>
-              <div className={`flex-1 relative ${showMobileFilters ? "transition-all duration-300" : ""}`}>
+            <div className={`flex flex-col md:flex-row md:items-center gap-4`}>
+              <div
+                className={`flex-1 relative ${
+                  showMobileFilters ? "transition-all duration-300" : ""
+                }`}
+              >
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
                   type="text"
@@ -180,7 +169,7 @@ export default function BidsPage() {
                   More Filters
                 </Button>
               </div>
-              
+
               {/* Mobile Filters - Expandable */}
               {showMobileFilters && (
                 <div className="lg:hidden border-t border-gray-200 pt-4 space-y-4">
@@ -210,7 +199,9 @@ export default function BidsPage() {
                           onChange={(e) => setDeadlineFilter(e.target.value)}
                           className="text-blue-600"
                         />
-                        <span className="text-sm text-gray-700">Urgent (≤3 days)</span>
+                        <span className="text-sm text-gray-700">
+                          Urgent (≤3 days)
+                        </span>
                       </label>
                       <label className="flex items-center gap-2">
                         <input
@@ -221,7 +212,9 @@ export default function BidsPage() {
                           onChange={(e) => setDeadlineFilter(e.target.value)}
                           className="text-blue-600"
                         />
-                        <span className="text-sm text-gray-700">Soon (4-7 days)</span>
+                        <span className="text-sm text-gray-700">
+                          Soon (4-7 days)
+                        </span>
                       </label>
                     </div>
                   </div>
@@ -263,7 +256,9 @@ export default function BidsPage() {
                           onChange={(e) => setOffersFilter(e.target.value)}
                           className="text-blue-600"
                         />
-                        <span className="text-sm text-gray-700">Medium (4-8)</span>
+                        <span className="text-sm text-gray-700">
+                          Medium (4-8)
+                        </span>
                       </label>
                       <label className="flex items-center gap-2">
                         <input
@@ -318,7 +313,12 @@ export default function BidsPage() {
 
           {/* Bids List */}
           <div className="space-y-4">
-            {filteredBids.length === 0 ? (
+            {loading ? (
+              <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading bids...</p>
+              </div>
+            ) : filteredBids.length === 0 ? (
               <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
                 <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">
@@ -339,35 +339,79 @@ export default function BidsPage() {
                       <p className="text-sm text-gray-600 mb-4 line-clamp-2">
                         {bid.description}
                       </p>
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                          <span>
-                            <strong className="text-gray-900">Route:</strong>{" "}
-                            {bid.origin} → {bid.destination}
-                          </span>
-                          <span>
-                            <strong className="text-gray-900">Cargo:</strong>{" "}
-                            {bid.cargoType}
-                          </span>
+
+                      {/* Show additional details only if paid */}
+                      {bid.isPaid ? (
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                            <span>
+                              <strong className="text-gray-900">Route:</strong>{" "}
+                              {bid.origin} → {bid.destination}
+                            </span>
+                            <span>
+                              <strong className="text-gray-900">Cargo:</strong>{" "}
+                              {bid.cargoType} ({bid.weight})
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                            <span>
+                              <strong>Budget:</strong> {bid.budget}
+                            </span>
+                            <span>
+                              <strong>Deadline:</strong> {bid.deadline}
+                            </span>
+                            <span>
+                              <strong>Offers:</strong> {bid.offers}
+                            </span>
+                          </div>
+                          {bid.lowestOffer && (
+                            <div className="text-sm text-green-600 font-semibold">
+                              <strong>Lowest Offer:</strong> {bid.lowestOffer}
+                            </div>
+                          )}
+                          <div className="text-sm text-gray-500">
+                            <strong>Shipper:</strong> {bid.shipperName}
+                          </div>
                         </div>
-                        <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                          <span>
-                            <strong>Deadline:</strong> {bid.deadline}
-                          </span>
-                          <span>
-                            <strong>Offers:</strong> {bid.offers}
-                          </span>
+                      ) : (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-blue-700 text-sm">
+                            <svg
+                              className="w-4 h-4"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            <span>
+                              Pay ETB 200 to unlock full bid details and submit
+                              offers
+                            </span>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                     <div className="flex flex-col gap-2 min-w-[140px]">
-                      <Button 
-                        variant="secondary" 
+                      <Button
+                        variant="secondary"
                         size="sm"
                         onClick={() => navigate(`/dashboard/bids/${bid.id}`)}
                       >
                         View Details
                       </Button>
+                      {!bid.isPaid && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/dashboard/bids/${bid.id}`)}
+                        >
+                          Pay & Unlock
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -407,7 +451,9 @@ export default function BidsPage() {
                     onChange={(e) => setDeadlineFilter(e.target.value)}
                     className="text-blue-600"
                   />
-                  <span className="text-sm text-gray-700">Urgent (≤3 days)</span>
+                  <span className="text-sm text-gray-700">
+                    Urgent (≤3 days)
+                  </span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -494,7 +540,10 @@ export default function BidsPage() {
                   <span className="text-sm text-gray-700">All</span>
                 </label>
                 {cargoTypes.map((type) => (
-                  <label key={type} className="flex items-center gap-2 cursor-pointer">
+                  <label
+                    key={type}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
                     <input
                       type="radio"
                       name="cargoType-lg"

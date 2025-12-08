@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { AnimatePresence, motion } from "framer-motion";
@@ -17,6 +17,7 @@ import {
   Copy,
   Check,
 } from "lucide-react";
+import { bidsApi, paymentsApi } from "@/lib/api";
 
 export default function BidDetailsPage() {
   const { id } = useParams();
@@ -28,29 +29,29 @@ export default function BidDetailsPage() {
   >(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
+  const [bid, setBid] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock bid data - in real app, fetch based on id
-  const bid = {
-    id: parseInt(id || "1"),
-    title: "Freight Transport from Addis Ababa to Dire Dawa",
-    description:
-      "Transport 50 tons of construction materials. Delivery required within 3 days. Materials include cement, steel bars, and building blocks. Must have proper securing equipment.",
-    budget: "ETB 25,000",
-    postedDate: "2024-01-15",
-    deadline: "2024-01-18",
-    offers: 5,
-    lowestOffer: "ETB 22,500",
-    shipperName: "ABC Construction Ltd.",
-    shipperPhone: "+251 911 234 567",
-    shipperEmail: "contact@abcconstruction.com",
-    origin: "Addis Ababa",
-    originAddress: "Bole Road, near Edna Mall",
-    destination: "Dire Dawa",
-    destinationAddress: "Industrial Area, Warehouse 12",
-    cargoType: "Construction Materials",
-    weight: "50 tons",
-    specialRequirements:
-      "Requires flatbed truck with securing straps. Loading assistance available at origin. Unloading equipment available at destination.",
+  // Fetch bid details on component mount
+  useEffect(() => {
+    if (id) {
+      fetchBidDetails(parseInt(id));
+    }
+  }, [id]);
+
+  const fetchBidDetails = async (bidId: number) => {
+    try {
+      setLoading(true);
+      const response = await bidsApi.getBidDetails(bidId);
+      setBid(response.data);
+      // For now, assume user hasn't paid - in real app check payment status
+      setHasPaid(false);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to load bid details");
+      setBid(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePayment = () => {
@@ -67,16 +68,28 @@ export default function BidDetailsPage() {
     }
   };
 
-  const handlePaymentSubmit = () => {
+  const handlePaymentSubmit = async () => {
     if (!selectedPaymentMethod || !uploadedFile) {
       toast.error("Please select a payment method and upload a screenshot");
       return;
     }
-    toast.success(
-      "Payment information submitted and under review. You will be notified once approved."
-    );
-    setHasPaid(true);
-    setShowPaymentForm(false);
+
+    try {
+      const formData = new FormData();
+      formData.append('amount', '200.00'); // ETB 200
+      formData.append('payment_method', selectedPaymentMethod);
+      formData.append('reference_number', `REF-${Date.now()}`);
+      formData.append('payment_proof', uploadedFile);
+      formData.append('bid', bid.id.toString());
+
+      await paymentsApi.createPayment(formData);
+
+      toast.success("Payment submitted successfully and is under review. You will be notified once approved.");
+      setHasPaid(true);
+      setShowPaymentForm(false);
+    } catch (error: any) {
+      toast.error(error.message || "Payment submission failed");
+    }
   };
 
   const handleCopy = (text: string, type: string) => {
@@ -85,6 +98,29 @@ export default function BidDetailsPage() {
     toast.success("Copied to clipboard!");
     setTimeout(() => setCopiedText(null), 2000);
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading bid details...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!bid) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-600">Bid not found</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -100,13 +136,13 @@ export default function BidDetailsPage() {
           <h1 className="text-3xl font-bold text-gray-900">Bid Details</h1>
           <p className="text-gray-600 mt-1">
             {hasPaid
-              ? "Complete bid information"
-              : "Limited information - pay to unlock full details"}
+              ? "Complete bid information and submission options"
+              : "Basic information only - pay ETB 200 to unlock full details and submit offers"}
           </p>
         </div>
       </div>
 
-      {/* Basic Information (Always Visible) */}
+      {/* Basic Information */}
       <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900 mb-2">
@@ -115,65 +151,72 @@ export default function BidDetailsPage() {
           <p className="text-gray-600 line-clamp-3">{bid.description}</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <MapPin className="w-5 h-5 text-blue-600 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-gray-500">Route</p>
-                <p className="text-gray-900">
-                  {bid.origin} → {bid.destination}
-                </p>
+        {/* Show additional details only after payment */}
+        {hasPaid && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Route</p>
+                    <p className="text-gray-900">
+                      {bid.origin} → {bid.destination}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Package className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Cargo</p>
+                    <p className="text-gray-900">
+                      {bid.cargoType} ({bid.weight})
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <Calendar className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">
+                      Deadline
+                    </p>
+                    <p className="text-gray-900">{bid.deadline}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Truck className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Budget</p>
+                    <p className="text-gray-900 text-lg font-semibold">
+                      {bid.budget}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="flex items-start gap-3">
-              <Package className="w-5 h-5 text-blue-600 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-gray-500">Cargo</p>
-                <p className="text-gray-900">
-                  {bid.cargoType} ({bid.weight})
-                </p>
+            <div className="pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex flex-col md:flex-row text-gray-600">
+                  <strong>Posted:</strong> {bid.postedDate}
+                </span>
+                <span className="flex flex-col md:flex-row text-gray-600">
+                  <strong>Offers Received:</strong> {bid.offers}
+                </span>
+                {bid.lowestOffer && (
+                  <span className="flex flex-col md:flex-row text-green-600 font-semibold">
+                    <strong>Lowest Offer:</strong> {bid.lowestOffer}
+                  </span>
+                )}
               </div>
             </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <Calendar className="w-5 h-5 text-blue-600 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-gray-500">Deadline</p>
-                <p className="text-gray-900">{bid.deadline}</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <Truck className="w-5 h-5 text-blue-600 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-gray-500">Budget</p>
-                <p className="text-gray-900 text-lg font-semibold">
-                  {bid.budget}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="pt-4 border-t border-gray-200">
-          <div className="flex items-center justify-between text-sm">
-            <span className="flex flex-col md:flex-row text-gray-600">
-              <strong>Posted:</strong> {bid.postedDate}
-            </span>
-            <span className="flex flex-col md:flex-row text-gray-600">
-              <strong>Offers Received:</strong> {bid.offers}
-            </span>
-            {bid.lowestOffer && (
-              <span className="flex flex-col md:flex-row text-green-600 font-semibold">
-                <strong>Lowest Offer:</strong> {bid.lowestOffer}
-              </span>
-            )}
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
       {/* Payment Gate or Full Details */}
@@ -187,12 +230,13 @@ export default function BidDetailsPage() {
               </div>
               <div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Unlock Full Details and bid participation
+                  Unlock Complete Bid Details & Offer Submission
                 </h3>
                 <p className="text-gray-600 max-w-md mx-auto">
-                  Pay a small fee to access complete bid information including
-                  shipper contact details, exact addresses, and special
-                  requirements.
+                  Pay ETB 200 to unlock complete bid details including route,
+                  cargo specifications, budget, shipper contact information,
+                  exact addresses, and special requirements. Also enables offer
+                  submission.
                 </p>
               </div>
               <div className="bg-white rounded-lg p-4 max-w-sm mx-auto">
@@ -261,7 +305,7 @@ export default function BidDetailsPage() {
                     <div className="space-y-6">
                       <div className="text-center">
                         <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                          Unlock Full Details and bid participation
+                          Unlock Complete Bid Details & Offer Submission
                         </h3>
                         <div className="flex items-center justify-center gap-3 mb-4">
                           <Info className="w-5 h-5 text-blue-600" />

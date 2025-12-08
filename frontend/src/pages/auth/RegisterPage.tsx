@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import AuthLayout from "@/components/layouts/AuthLayout";
@@ -8,12 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { registerSchema, type RegisterFormData } from "@/lib/validations";
 import { getCountries, getCitiesByCountry } from "@/constant";
+import { authApi } from "@/lib/api";
 import { Upload, FileText, X } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 type RegistrationStep = "form" | "role" | "documents";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { setSession } = useAuth();
   const [step, setStep] = useState<RegistrationStep>("form");
   const [formData, setFormData] = useState({
     firstName: "",
@@ -48,6 +51,7 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState<
     Partial<Record<keyof RegisterFormData, string>>
   >({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const shipperDocuments = [
     "Business License",
@@ -72,9 +76,7 @@ export default function RegisterPage() {
     "Plc vat certificate doc",
   ];
 
-  const getCarrierTruckOwnerDocuments = () => [
-    "Truck Business licence",
-  ];
+  const getCarrierTruckOwnerDocuments = () => ["Truck Business licence"];
 
   const getRequiredDocuments = () => {
     if (selectedRole === "shipper") {
@@ -122,8 +124,11 @@ export default function RegisterPage() {
     }));
   };
 
-  const handleDocumentsSubmit = (e: React.FormEvent) => {
+  const handleDocumentsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isSubmitting) return;
+
     const requiredDocuments = getRequiredDocuments();
 
     // Validate number inputs for carriers
@@ -163,22 +168,51 @@ export default function RegisterPage() {
       return;
     }
 
-    // Handle registration with files
-    console.log("Registration data:", {
-      ...formData,
-      role: selectedRole,
-      carrierSubcategory,
-      carrierData,
-      files,
-    });
+    setIsSubmitting(true);
 
-    toast.success(
-      "Registration successful! Your documents are being reviewed."
-    );
-    // Navigate to login or dashboard after registration
-    setTimeout(() => {
-      navigate("/login");
-    }, 2000);
+    try {
+      // Filter out null files
+      const validFiles: { [key: string]: File } = {};
+      Object.entries(files).forEach(([key, file]) => {
+        if (file) {
+          validFiles[key] = file;
+        }
+      });
+
+      const registrationResult = await authApi.completeRegistration({
+        formData,
+        selectedRole: selectedRole!,
+        carrierSubcategory: carrierSubcategory || undefined,
+        carrierData,
+        files: validFiles,
+      });
+
+      if (registrationResult.success) {
+        if (registrationResult.data) {
+          setSession({
+            user: registrationResult.data.user,
+            access_token: registrationResult.data.access_token,
+            refresh_token: registrationResult.data.refresh_token,
+          });
+        }
+        toast.success(
+          "Registration successful! Your documents are being reviewed."
+        );
+        // Navigate to dashboard after successful registration
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 2000);
+      } else {
+        toast.error(
+          registrationResult.message || "Registration failed. Please try again."
+        );
+      }
+    } catch (error) {
+      console.error("Registration error:", error);
+      toast.error("Registration failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const updateField = (field: keyof typeof formData, value: string) => {
@@ -196,18 +230,12 @@ export default function RegisterPage() {
     }
   };
 
-  const updateCarrierData = (field: keyof typeof carrierData, value: string) => {
+  const updateCarrierData = (
+    field: keyof typeof carrierData,
+    value: string
+  ) => {
     setCarrierData((prev) => ({ ...prev, [field]: value }));
   };
-
-  // Initialize cities when country is selected
-  useEffect(() => {
-    if (formData.country) {
-      setAvailableCities(getCitiesByCountry(formData.country));
-    } else {
-      setAvailableCities([]);
-    }
-  }, [formData.country]);
 
   return (
     <AuthLayout>
@@ -272,8 +300,12 @@ export default function RegisterPage() {
                           type="text"
                           placeholder="Enter your first name"
                           value={formData.firstName}
-                          onChange={(e) => updateField("firstName", e.target.value)}
-                          className={errors.firstName ? "border-destructive" : ""}
+                          onChange={(e) =>
+                            updateField("firstName", e.target.value)
+                          }
+                          className={
+                            errors.firstName ? "border-destructive" : ""
+                          }
                         />
                         {errors.firstName && (
                           <p className="text-xs text-destructive max-w-xs">
@@ -289,8 +321,12 @@ export default function RegisterPage() {
                           type="text"
                           placeholder="Enter your last name"
                           value={formData.lastName}
-                          onChange={(e) => updateField("lastName", e.target.value)}
-                          className={errors.lastName ? "border-destructive" : ""}
+                          onChange={(e) =>
+                            updateField("lastName", e.target.value)
+                          }
+                          className={
+                            errors.lastName ? "border-destructive" : ""
+                          }
                         />
                         {errors.lastName && (
                           <p className="text-xs text-destructive max-w-xs">
@@ -342,8 +378,12 @@ export default function RegisterPage() {
                           type="password"
                           placeholder="********"
                           value={formData.password}
-                          onChange={(e) => updateField("password", e.target.value)}
-                          className={errors.password ? "border-destructive" : ""}
+                          onChange={(e) =>
+                            updateField("password", e.target.value)
+                          }
+                          className={
+                            errors.password ? "border-destructive" : ""
+                          }
                         />
                         {errors.password && (
                           <p className="text-xs text-destructive max-w-xs">
@@ -353,7 +393,9 @@ export default function RegisterPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="confirmPassword">Confirm Password</Label>
+                        <Label htmlFor="confirmPassword">
+                          Confirm Password
+                        </Label>
                         <Input
                           id="confirmPassword"
                           type="password"
@@ -380,14 +422,16 @@ export default function RegisterPage() {
                     <h3 className="text-sm font-semibold text-foreground">
                       Address Information
                     </h3>
-                    
+
                     <div className="flex flex-col md:flex-row gap-4">
                       <div className="flex-1 space-y-2">
                         <Label htmlFor="country">Country</Label>
                         <Select
                           id="country"
                           value={formData.country}
-                          onChange={(e) => updateField("country", e.target.value)}
+                          onChange={(e) =>
+                            updateField("country", e.target.value)
+                          }
                           className={errors.country ? "border-destructive" : ""}
                         >
                           <option value="">Select a country</option>
@@ -574,7 +618,9 @@ export default function RegisterPage() {
                           : "border-border hover:border-primary/50 hover:bg-primary/5"
                       }`}
                     >
-                      <h4 className="font-semibold mb-1 text-foreground">PLC</h4>
+                      <h4 className="font-semibold mb-1 text-foreground">
+                        PLC
+                      </h4>
                       <p className="text-xs text-muted-foreground">
                         Public Limited Company
                       </p>
@@ -627,7 +673,10 @@ export default function RegisterPage() {
                   }}
                   variant="secondary"
                   className="flex-1"
-                  disabled={!selectedRole || (selectedRole === "carrier" && !carrierSubcategory)}
+                  disabled={
+                    !selectedRole ||
+                    (selectedRole === "carrier" && !carrierSubcategory)
+                  }
                 >
                   Continue
                 </Button>
@@ -653,7 +702,9 @@ export default function RegisterPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {shipperDocuments.map((docName) => (
                       <div key={docName} className="space-y-2">
-                        <Label>{docName} <span className="text-red-500">*</span></Label>
+                        <Label>
+                          {docName} <span className="text-red-500">*</span>
+                        </Label>
                         {files[docName] ? (
                           <div className="flex items-center gap-2 p-2 border border-border rounded-lg bg-muted">
                             <FileText className="size-4" />
@@ -694,91 +745,101 @@ export default function RegisterPage() {
                 )}
 
                 {/* Carrier Company Documents */}
-                {selectedRole === "carrier" && carrierSubcategory === "company" && (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="companyName">
-                          Company name <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="companyName"
-                          type="text"
-                          placeholder="Enter company name"
-                          value={carrierData.companyName}
-                          onChange={(e) =>
-                            updateCarrierData("companyName", e.target.value)
-                          }
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="companyNumberOfTrucks">
-                          Company number of trucks <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="companyNumberOfTrucks"
-                          type="number"
-                          min="1"
-                          placeholder="Enter number of trucks"
-                          value={carrierData.companyNumberOfTrucks}
-                          onChange={(e) =>
-                            updateCarrierData("companyNumberOfTrucks", e.target.value)
-                          }
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {getCarrierCompanyDocuments().map((docName) => (
-                        <div key={docName} className="space-y-2">
-                          <Label>{docName} <span className="text-red-500">*</span></Label>
-                          {files[docName] ? (
-                            <div className="flex items-center gap-2 p-2 border border-border rounded-lg bg-muted">
-                              <FileText className="size-4" />
-                              <span className="text-sm flex-1 truncate">
-                                {files[docName]?.name}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => handleFileChange(docName, null)}
-                                className="text-destructive hover:text-destructive/80 shrink-0"
-                              >
-                                <X className="size-4 hover:bg-red-100" />
-                              </button>
-                            </div>
-                          ) : (
-                            <label className="flex flex-col items-center justify-center w-full p-2 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                              <div className="flex gap-2 items-center justify-center p4">
-                                <Upload className="size-4 text-muted-foreground" />
-                                <p className="text-sm text-muted-foreground text-center px-2">
-                                  Click to upload or drag and drop
-                                </p>
-                              </div>
-
-                              <input
-                                type="file"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0] || null;
-                                  handleFileChange(docName, file);
-                                }}
-                                accept=".pdf,.jpg,.jpeg,.png"
-                              />
-                            </label>
-                          )}
+                {selectedRole === "carrier" &&
+                  carrierSubcategory === "company" && (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="companyName">
+                            Company name <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="companyName"
+                            type="text"
+                            placeholder="Enter company name"
+                            value={carrierData.companyName}
+                            onChange={(e) =>
+                              updateCarrierData("companyName", e.target.value)
+                            }
+                          />
                         </div>
-                      ))}
-                    </div>
-                  </>
-                )}
+
+                        <div className="space-y-2">
+                          <Label htmlFor="companyNumberOfTrucks">
+                            Company number of trucks{" "}
+                            <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="companyNumberOfTrucks"
+                            type="number"
+                            min="1"
+                            placeholder="Enter number of trucks"
+                            value={carrierData.companyNumberOfTrucks}
+                            onChange={(e) =>
+                              updateCarrierData(
+                                "companyNumberOfTrucks",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {getCarrierCompanyDocuments().map((docName) => (
+                          <div key={docName} className="space-y-2">
+                            <Label>
+                              {docName} <span className="text-red-500">*</span>
+                            </Label>
+                            {files[docName] ? (
+                              <div className="flex items-center gap-2 p-2 border border-border rounded-lg bg-muted">
+                                <FileText className="size-4" />
+                                <span className="text-sm flex-1 truncate">
+                                  {files[docName]?.name}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleFileChange(docName, null)
+                                  }
+                                  className="text-destructive hover:text-destructive/80 shrink-0"
+                                >
+                                  <X className="size-4 hover:bg-red-100" />
+                                </button>
+                              </div>
+                            ) : (
+                              <label className="flex flex-col items-center justify-center w-full p-2 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                                <div className="flex gap-2 items-center justify-center p4">
+                                  <Upload className="size-4 text-muted-foreground" />
+                                  <p className="text-sm text-muted-foreground text-center px-2">
+                                    Click to upload or drag and drop
+                                  </p>
+                                </div>
+
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0] || null;
+                                    handleFileChange(docName, file);
+                                  }}
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                />
+                              </label>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
 
                 {/* Carrier PLC Documents */}
                 {selectedRole === "carrier" && carrierSubcategory === "plc" && (
                   <>
                     <div className="space-y-2">
                       <Label htmlFor="plcNumberOfTrucks">
-                        PLC number of trucks <span className="text-red-500">*</span>
+                        PLC number of trucks{" "}
+                        <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="plcNumberOfTrucks"
@@ -795,7 +856,9 @@ export default function RegisterPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {getCarrierPLCDocuments().map((docName) => (
                         <div key={docName} className="space-y-2">
-                          <Label>{docName} <span className="text-red-500">*</span></Label>
+                          <Label>
+                            {docName} <span className="text-red-500">*</span>
+                          </Label>
                           {files[docName] ? (
                             <div className="flex items-center gap-2 p-2 border border-border rounded-lg bg-muted">
                               <FileText className="size-4" />
@@ -837,81 +900,96 @@ export default function RegisterPage() {
                 )}
 
                 {/* Carrier Truck Owner Documents */}
-                {selectedRole === "carrier" && carrierSubcategory === "truckOwner" && (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="truckLibrehNumber">
-                          Truck libreh number <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="truckLibrehNumber"
-                          type="text"
-                          placeholder="Enter truck libreh number"
-                          value={carrierData.truckLibrehNumber}
-                          onChange={(e) =>
-                            updateCarrierData("truckLibrehNumber", e.target.value)
-                          }
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="truckTinNumber">Truck TIN Number <span className="text-red-500">*</span></Label>
-                        <Input
-                          id="truckTinNumber"
-                          type="text"
-                          placeholder="Enter truck TIN number"
-                          value={carrierData.truckTinNumber}
-                          onChange={(e) =>
-                            updateCarrierData("truckTinNumber", e.target.value)
-                          }
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {getCarrierTruckOwnerDocuments().map((docName) => (
-                        <div key={docName} className="space-y-2">
-                          <Label>{docName} <span className="text-red-500">*</span></Label>
-                          {files[docName] ? (
-                            <div className="flex items-center gap-2 p-2 border border-border rounded-lg bg-muted">
-                              <FileText className="size-4" />
-                              <span className="text-sm flex-1 truncate">
-                                {files[docName]?.name}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => handleFileChange(docName, null)}
-                                className="text-destructive hover:text-destructive/80 shrink-0"
-                              >
-                                <X className="size-4 hover:bg-red-100" />
-                              </button>
-                            </div>
-                          ) : (
-                            <label className="flex flex-col items-center justify-center w-full p-2 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                              <div className="flex gap-2 items-center justify-center p4">
-                                <Upload className="size-4 text-muted-foreground" />
-                                <p className="text-sm text-muted-foreground text-center px-2">
-                                  Click to upload or drag and drop
-                                </p>
-                              </div>
-
-                              <input
-                                type="file"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0] || null;
-                                  handleFileChange(docName, file);
-                                }}
-                                accept=".pdf,.jpg,.jpeg,.png"
-                              />
-                            </label>
-                          )}
+                {selectedRole === "carrier" &&
+                  carrierSubcategory === "truckOwner" && (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="truckLibrehNumber">
+                            Truck libreh number{" "}
+                            <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="truckLibrehNumber"
+                            type="text"
+                            placeholder="Enter truck libreh number"
+                            value={carrierData.truckLibrehNumber}
+                            onChange={(e) =>
+                              updateCarrierData(
+                                "truckLibrehNumber",
+                                e.target.value
+                              )
+                            }
+                          />
                         </div>
-                      ))}
-                    </div>
-                  </>
-                )}
+
+                        <div className="space-y-2">
+                          <Label htmlFor="truckTinNumber">
+                            Truck TIN Number{" "}
+                            <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="truckTinNumber"
+                            type="text"
+                            placeholder="Enter truck TIN number"
+                            value={carrierData.truckTinNumber}
+                            onChange={(e) =>
+                              updateCarrierData(
+                                "truckTinNumber",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {getCarrierTruckOwnerDocuments().map((docName) => (
+                          <div key={docName} className="space-y-2">
+                            <Label>
+                              {docName} <span className="text-red-500">*</span>
+                            </Label>
+                            {files[docName] ? (
+                              <div className="flex items-center gap-2 p-2 border border-border rounded-lg bg-muted">
+                                <FileText className="size-4" />
+                                <span className="text-sm flex-1 truncate">
+                                  {files[docName]?.name}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleFileChange(docName, null)
+                                  }
+                                  className="text-destructive hover:text-destructive/80 shrink-0"
+                                >
+                                  <X className="size-4 hover:bg-red-100" />
+                                </button>
+                              </div>
+                            ) : (
+                              <label className="flex flex-col items-center justify-center w-full p-2 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                                <div className="flex gap-2 items-center justify-center p4">
+                                  <Upload className="size-4 text-muted-foreground" />
+                                  <p className="text-sm text-muted-foreground text-center px-2">
+                                    Click to upload or drag and drop
+                                  </p>
+                                </div>
+
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0] || null;
+                                    handleFileChange(docName, file);
+                                  }}
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                />
+                              </label>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
 
                 <div className="flex gap-3">
                   <Button
@@ -919,11 +997,17 @@ export default function RegisterPage() {
                     onClick={() => setStep("role")}
                     variant="outline"
                     className="flex-1"
+                    disabled={isSubmitting}
                   >
                     Back
                   </Button>
-                  <Button type="submit" className="flex-1" variant="secondary">
-                    Complete Registration
+                  <Button
+                    type="submit"
+                    className="flex-1"
+                    variant="secondary"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Registering..." : "Complete Registration"}
                   </Button>
                 </div>
               </form>

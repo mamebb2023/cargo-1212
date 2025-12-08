@@ -19,6 +19,7 @@ import AdminLoginPage from "@/pages/admin/AdminLoginPage";
 import AdminDashboardPage from "@/pages/admin/AdminDashboardPage";
 import ToReviewPage from "@/pages/admin/ToReviewPage";
 import AdminLayout from "@/components/layouts/AdminLayout";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 function App() {
   return (
@@ -55,7 +56,14 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        <Route path="/dashboard" element={<DashboardLayout />}>
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<DashboardPage />} />
           <Route path="bids" element={<BidsPage />} />
           <Route path="bids/create" element={<CreateBidPage />} />

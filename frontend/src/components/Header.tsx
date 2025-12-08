@@ -1,14 +1,17 @@
 import { useEffect, useState, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [openMenu, setOpenMenu] = useState(false);
   const [scrollDir, setScrollDir] = useState<"up" | "down">("up");
   const lastScrollY = useRef(0);
+  const { isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
 
   const navLinks = [
     { name: "About Us", path: "/about" },
@@ -80,17 +83,39 @@ export default function Header() {
 
           {/* Desktop Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/login">
-              <Button variant="outline" className="rounded-full px-5">
-                Log in
-              </Button>
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link to="/dashboard/bids">
+                  <Button variant="outline" className="rounded-full px-5">
+                    Dashboard
+                  </Button>
+                </Link>
+                <Button
+                  variant="secondary"
+                  className="rounded-full"
+                  onClick={() => {
+                    logout();
+                    navigate("/");
+                  }}
+                >
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="outline" className="rounded-full px-5">
+                    Log in
+                  </Button>
+                </Link>
 
-            <Link to="/register">
-              <Button variant="secondary" className="rounded-full">
-                Create a Bid
-              </Button>
-            </Link>
+                <Link to="/register">
+                  <Button variant="secondary" className="rounded-full">
+                    Create a Bid
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -159,19 +184,54 @@ export default function Header() {
                   )}
                 </nav>
 
-                {/* Login + Register */}
+                {/* Auth Actions */}
                 <div className="flex flex-col gap-4">
-                  <Link to="/login" onClick={() => setOpenMenu(false)}>
-                    <Button variant="outline" className="w-full rounded-full">
-                      Log in
-                    </Button>
-                  </Link>
+                  {isAuthenticated ? (
+                    <>
+                      <Link
+                        to="/dashboard/bids"
+                        onClick={() => setOpenMenu(false)}
+                      >
+                        <Button
+                          variant="outline"
+                          className="w-full rounded-full"
+                        >
+                          Dashboard
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="secondary"
+                        className="w-full rounded-full"
+                        onClick={() => {
+                          setOpenMenu(false);
+                          logout();
+                          navigate("/");
+                        }}
+                      >
+                        Logout
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Link to="/login" onClick={() => setOpenMenu(false)}>
+                        <Button
+                          variant="outline"
+                          className="w-full rounded-full"
+                        >
+                          Log in
+                        </Button>
+                      </Link>
 
-                  <Link to="/register" onClick={() => setOpenMenu(false)}>
-                    <Button variant="secondary" className="w-full rounded-full">
-                      Register
-                    </Button>
-                  </Link>
+                      <Link to="/register" onClick={() => setOpenMenu(false)}>
+                        <Button
+                          variant="secondary"
+                          className="w-full rounded-full"
+                        >
+                          Register
+                        </Button>
+                      </Link>
+                    </>
+                  )}
                 </div>
               </div>
             </motion.div>

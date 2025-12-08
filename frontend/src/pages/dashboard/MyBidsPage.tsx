@@ -2,9 +2,12 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Package, Eye, Trash2, FileText, CheckCircle2, XCircle } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function MyBidsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isShipper = user?.role === "shipper";
   const [myBids] = useState([
     {
       id: 1,
@@ -62,6 +65,18 @@ export default function MyBidsPage() {
     const closed = myBids.filter((bid) => bid.status === "closed").length;
     return { total, active, closed };
   }, [myBids]);
+
+  if (!isShipper) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-8 text-center space-y-4">
+        <Package className="w-10 h-10 text-gray-400 mx-auto" />
+        <p className="text-gray-700">My Bids is available for shippers only.</p>
+        <Button variant="secondary" onClick={() => navigate("/dashboard/bids")}>
+          Go to Bids
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -6,16 +6,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { loginSchema, type LoginFormData } from "@/lib/validations";
+import { authApi } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { setSession } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<
     Partial<Record<keyof LoginFormData, string>>
   >({});
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
 
@@ -36,11 +41,24 @@ export default function LoginPage() {
       return;
     }
 
-    // Handle login logic here
-    console.log("Login:", result.data);
-    toast.success("Login successful!");
-    // Redirect to bids page
-    navigate("/dashboard/bids");
+    setIsLoading(true);
+
+    try {
+      const response = await authApi.login(email, password);
+      if (response.data) {
+        setSession({
+          user: response.data.user,
+          access_token: response.data.access_token,
+          refresh_token: response.data.refresh_token,
+        });
+      }
+      toast.success(response.message || "Login successful!");
+      navigate("/dashboard/bids");
+    } catch (error: any) {
+      toast.error(error.message || "Login failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -92,8 +110,8 @@ export default function LoginPage() {
               )}
             </div>
 
-            <Button type="submit" className="w-full" variant="secondary">
-              Login
+            <Button type="submit" className="w-full" variant="secondary" disabled={isLoading}>
+              {isLoading ? "Logging in..." : "Login"}
             </Button>
           </form>
 

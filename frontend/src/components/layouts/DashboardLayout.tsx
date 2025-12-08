@@ -7,12 +7,25 @@ import {
   Package,
   ChevronLeft,
   Settings,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const location = useLocation();
+  const { user, logout } = useAuth();
+
+  const initials =
+    (user?.full_name ?? "")
+      .split(" ")
+      .filter(Boolean)
+      .map((part) => part[0])
+      .slice(0, 2)
+      .join("") || "CB";
+
+  const isCarrier = user?.role === "carrier";
 
   const menuItems = [
     {
@@ -25,12 +38,12 @@ export default function DashboardLayout() {
       label: "Bids",
       path: "/dashboard/bids",
     },
-    {
+    !isCarrier && {
       icon: FileText,
       label: "My Bids",
       path: "/dashboard/my-bids",
     },
-  ];
+  ].filter(Boolean) as { icon: typeof LayoutDashboard; label: string; path: string }[];
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {
@@ -64,7 +77,7 @@ export default function DashboardLayout() {
 
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 rounded-md bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-all ml-2"
+            className="p-1.5 rounded-md bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-all ml-1"
           >
             <ChevronLeft
               className={`size-4 text-gray-600 transition-transform duration-300 ${
@@ -112,10 +125,17 @@ export default function DashboardLayout() {
               title={!sidebarOpen ? "Profile" : undefined}
             >
               <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold shrink-0">
-                JD
+                {initials}
               </div>
               {sidebarOpen && (
-                <span className="text-sm font-medium">John Doe</span>
+                <div className="flex flex-col items-start">
+                  <span className="text-sm font-medium">
+                    {user?.full_name || "User"}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {user?.email || ""}
+                  </span>
+                </div>
               )}
             </button>
 
@@ -142,6 +162,16 @@ export default function DashboardLayout() {
                   <Settings className="w-4 h-4" />
                   Settings
                 </Link>
+                <button
+                  onClick={() => {
+                    setProfileDropdownOpen(false);
+                    logout();
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-left"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </button>
               </div>
             )}
           </div>

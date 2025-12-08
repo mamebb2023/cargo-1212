@@ -1,8 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { Package, FileText, TrendingUp, Users } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isCarrier = user?.role === "carrier";
   const stats = [
     {
       label: "Total Bids",
@@ -39,8 +43,26 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-600 mt-1">
-          Welcome to your logistics transport bidding dashboard
+          Welcome back {user?.full_name ? `, ${user.full_name}` : ""}{" "}
+          {user?.role ? `(${user.role})` : ""}
         </p>
+        <div className="mt-4 flex gap-3">
+          {isCarrier ? (
+            <Button
+              variant="secondary"
+              onClick={() => navigate("/dashboard/bids")}
+            >
+              Browse Bids
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              onClick={() => navigate("/dashboard/bids/create")}
+            >
+              Create a Bid
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Stats Grid */}
