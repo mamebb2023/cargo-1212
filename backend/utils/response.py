@@ -1,7 +1,7 @@
 from rest_framework.response import Response
 
 
-def api_response(success=True, message="", data=None, status_code=None):
+def api_response(success=True, message="", data=None, errors=None, status_code=None):
     """
     Standardized API response format
 
@@ -9,6 +9,7 @@ def api_response(success=True, message="", data=None, status_code=None):
         success (bool): Whether the operation was successful
         message (str): Response message
         data: Response data (can be dict, list, or any serializable object)
+        errors: Optional validation or field errors to return to the client
         status_code: HTTP status code (optional)
 
     Returns:
@@ -21,5 +22,8 @@ def api_response(success=True, message="", data=None, status_code=None):
 
     if data is not None:
         response["data"] = data
+
+    if errors is not None:
+        response["errors"] = errors
 
     return response

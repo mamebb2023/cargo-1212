@@ -18,8 +18,11 @@ class VerificationDocumentListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
+        # Admins receive full details to review documents; others get compact lists
         if self.request.method == "POST":
             return VerificationDocumentCreateSerializer
+        if self.request.user and getattr(self.request.user, "role", None) == "admin":
+            return VerificationDocumentSerializer
         return VerificationDocumentListSerializer
 
     def get_queryset(self):

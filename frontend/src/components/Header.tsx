@@ -90,16 +90,6 @@ export default function Header() {
                     Dashboard
                   </Button>
                 </Link>
-                <Button
-                  variant="secondary"
-                  className="rounded-full"
-                  onClick={() => {
-                    logout();
-                    navigate("/");
-                  }}
-                >
-                  Logout
-                </Button>
               </>
             ) : (
               <>

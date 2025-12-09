@@ -1,7 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
+import { adminApi, verificationApi, API_BASE_URL } from "@/lib/api";
+import Loading from "@/components/ui/loading";
+import type { VerificationDocument as ApiVerificationDocument } from "@/types";
+import { useAuth } from "@/hooks/useAuth";
 import {
   FileText,
   Download,
@@ -40,10 +44,17 @@ interface DocumentSubmission {
 
 export default function ToReviewPage() {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [selectedImage, setSelectedImage] = useState<{
     url: string;
     label: string;
   } | null>(null);
+  const [isImageLoading, setIsImageLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [processingDocumentId, setProcessingDocumentId] = useState<number | null>(
+    null
+  );
 
   // Helper function to check if file is an image
   const isImageFile = (fileName: string): boolean => {
@@ -62,17 +73,18 @@ export default function ToReviewPage() {
 
   // Helper function to get file URL (construct from fileName if fileUrl not provided)
   const getFileUrl = (document: SubmissionDocument): string => {
-    if (document.fileUrl) {
-      return document.fileUrl;
-    }
-    // Construct URL from fileName (assuming files are stored in a public/uploads directory)
-    // In production, this should come from the backend API
-    return `/uploads/${document.fileName}`;
+    const url = document.fileUrl || `/uploads/${document.fileName}`;
+    const isAbsolute = url.startsWith("http://") || url.startsWith("https://");
+    const isApiRelative = url.startsWith("/media") || url.startsWith("/uploads");
+    if (isAbsolute) return url;
+    if (isApiRelative) return `${API_BASE_URL.replace(/\/api$/, "")}${url}`;
+    return url;
   };
 
   // Handle viewing image
   const handleViewImage = (document: SubmissionDocument) => {
     const fileUrl = getFileUrl(document);
+    setIsImageLoading(true);
     setSelectedImage({ url: fileUrl, label: document.label });
   };
 
@@ -88,125 +100,131 @@ export default function ToReviewPage() {
     toast.success("Download started");
   };
 
-  const [submissions, setSubmissions] = useState<DocumentSubmission[]>([
-    {
-      id: 1,
-      userId: 3,
-      userName: "Mike Johnson",
-      userEmail: "mike@example.com",
-      userPhone: "+251 911 234 567",
-      userRole: "carrier",
-      carrierSubcategory: "company",
-      companyName: "ABC Transport Ltd.",
-      companyNumberOfTrucks: "15",
-      submittedDate: "2024-01-20",
-      documents: [
-        {
-          id: 101,
-          label: "Business License",
-          fileName: "business_license.pdf",
-          fileUrl: "/uploads/business_license.pdf",
-          status: "pending",
-        },
-        {
-          id: 102,
-          label: "Tax Clearance",
-          fileName: "tax_clearance.webp",
-          fileUrl: "/uploads/tax_clearance.webp",
-          status: "pending",
-        },
-      ],
-    },
-    {
-      id: 2,
-      userId: 6,
-      userName: "Emily Davis",
-      userEmail: "emily@example.com",
-      userPhone: "+251 922 345 678",
-      userRole: "carrier",
-      carrierSubcategory: "truckOwner",
-      companyName: "Emily's Trucking",
-      truckLibrehNumber: "LIB-12345",
-      truckTinNumber: "TIN-67890",
-      submittedDate: "2024-01-19",
-      documents: [
-        {
-          id: 201,
-          label: "Vehicle Registration",
-          fileName: "vehicle_registration.jpg",
-          fileUrl: "/uploads/vehicle_registration.jpg",
-          status: "pending",
-        },
-        {
-          id: 202,
-          label: "Insurance Certificate",
-          fileName: "insurance_certificate.pdf",
-          fileUrl: "/uploads/insurance_certificate.pdf",
-          status: "pending",
-        },
-      ],
-    },
-    {
-      id: 3,
-      userId: 10,
-      userName: "Maria Martinez",
-      userEmail: "maria@example.com",
-      userPhone: "+251 933 456 789",
-      userRole: "shipper",
-      companyName: "Martinez Logistics",
-      submittedDate: "2024-01-18",
-      documents: [
-        {
-          id: 301,
-          label: "Business License",
-          fileName: "business_license.pdf",
-          status: "approved",
-        },
-        {
-          id: 302,
-          label: "Tax Certificate",
-          fileName: "tax_certificate.pdf",
-          status: "approved",
-        },
-      ],
-    },
-    {
-      id: 4,
-      userId: 14,
-      userName: "Linda White",
-      userEmail: "linda@example.com",
-      userPhone: "+251 944 567 890",
-      userRole: "carrier",
-      carrierSubcategory: "plc",
-      companyName: "White Logistics PLC",
-      plcNumberOfTrucks: "25",
-      submittedDate: "2024-01-17",
-      documents: [
-        {
-          id: 401,
-          label: "Insurance Certificate",
-          fileName: "insurance_cert.pdf",
-          status: "rejected",
-        },
-        {
-          id: 402,
-          label: "Vehicle Inspection",
-          fileName: "vehicle_inspection.pdf",
-          status: "rejected",
-        },
-      ],
-    },
-  ]);
+  const [submissions, setSubmissions] = useState<DocumentSubmission[]>([]);
+
+  const formatDocumentLabel = useCallback((documentType: string): string => {
+    const mapping: Record<string, string> = {
+      business_license: "Business License",
+      tax_clearance: "Tax Clearance",
+      company_registration: "Company Registration",
+      identity_document: "Identity Document",
+      company_business_registration: "Company Business Registration",
+      company_business_license: "Company Business License",
+      company_competency_certificate: "Company Competency Certificate",
+      company_tax_clearance: "Company Tax Clearance",
+      company_vat_certificate: "Company VAT Certificate",
+      plc_registration: "PLC Registration",
+      plc_business_license: "PLC Business License",
+      plc_competency_certificate: "PLC Competency Certificate",
+      plc_tax_clearance: "PLC Tax Clearance",
+      plc_vat_certificate: "PLC VAT Certificate",
+      truck_business_licence: "Truck Business Licence",
+    };
+
+    if (mapping[documentType]) {
+      return mapping[documentType];
+    }
+
+    return documentType
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  }, []);
+
+  const mapCarrierSubcategory = useCallback(
+    (carrierType?: string | null): DocumentSubmission["carrierSubcategory"] => {
+    if (!carrierType) return undefined;
+    if (carrierType === "truck_owner") return "truckOwner";
+    if (carrierType === "company" || carrierType === "plc") {
+      return carrierType;
+    }
+    return undefined;
+  },
+    []
+  );
+
+  const mapDocumentsToSubmissions = useCallback(
+    (documents: ApiVerificationDocument[]): DocumentSubmission[] => {
+    const submissionsMap = new Map<number, DocumentSubmission>();
+
+    documents.forEach((doc) => {
+      const user = doc.user;
+      if (!user) return;
+
+      const carrierSubcategory = mapCarrierSubcategory(user.carrier_type);
+      const formattedDocument: SubmissionDocument = {
+        id: doc.id,
+        label: formatDocumentLabel(doc.document_type),
+        fileName: doc.file_url?.split("/").pop() || `${doc.document_type}.document`,
+        fileUrl: doc.file_url || undefined,
+        status: doc.status as SubmissionDocument["status"],
+      };
+
+      const existingSubmission = submissionsMap.get(user.id);
+
+      if (existingSubmission) {
+        existingSubmission.documents.push(formattedDocument);
+        return;
+      }
+
+      submissionsMap.set(user.id, {
+        id: user.id,
+        userId: user.id,
+        userName: user.full_name,
+        userEmail: user.email,
+        userPhone: user.phone,
+        userRole: user.role === "carrier" ? "carrier" : "shipper",
+        carrierSubcategory,
+        companyName: user.company_name,
+        companyNumberOfTrucks:
+          carrierSubcategory === "company" && user.number_of_trucks
+            ? String(user.number_of_trucks)
+            : undefined,
+        plcNumberOfTrucks:
+          carrierSubcategory === "plc" && user.number_of_trucks
+            ? String(user.number_of_trucks)
+            : undefined,
+        truckLibrehNumber: user.truck_libreh_number || undefined,
+        truckTinNumber: user.truck_tin_number || undefined,
+        submittedDate: doc.created_at
+          ? new Date(doc.created_at).toLocaleDateString()
+          : "",
+        documents: [formattedDocument],
+      });
+    });
+
+    return Array.from(submissionsMap.values());
+  },
+    [formatDocumentLabel, mapCarrierSubcategory]
+  );
+
+  const fetchSubmissions = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await adminApi.getVerificationDocuments();
+      const docs = Array.isArray(response.data) ? response.data : [];
+      setSubmissions(mapDocumentsToSubmissions(docs));
+    } catch (error: any) {
+      const message =
+        error instanceof Error ? error.message : "Failed to load submissions";
+      toast.error(message);
+      setSubmissions([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [mapDocumentsToSubmissions]);
 
   useEffect(() => {
-    // Check if user is admin
-    const isAdmin = sessionStorage.getItem("isAdmin");
+    if (loading) return;
     if (!isAdmin) {
-      navigate("/admin/login");
+      navigate("/dashboard/stats");
+      return;
     }
-  }, [navigate]);
 
-  const handleDocumentAction = (
+    fetchSubmissions();
+  }, [fetchSubmissions, isAdmin, navigate, loading]);
+
+  const handleDocumentAction = async (
     submissionId: number,
     documentId: number,
     action: "approve" | "reject" | "download" | "view"
@@ -226,41 +244,57 @@ export default function ToReviewPage() {
       return;
     }
 
-    setSubmissions((prev) =>
-      prev.map((sub) =>
-        sub.id === submissionId
-          ? {
-              ...sub,
-              documents: sub.documents.map((doc) =>
-                doc.id === documentId
-                  ? {
-                      ...doc,
-                      status: action === "approve" ? "approved" : "rejected",
-                    }
-                  : doc
-              ),
-            }
-          : sub
-      )
-    );
+    const nextStatus = action === "approve" ? "approved" : "rejected";
 
-    const message =
-      action === "approve"
-        ? "Document approved successfully"
-        : "Document rejected";
+    try {
+      setProcessingDocumentId(documentId);
+      await verificationApi.updateDocumentStatus(
+        documentId,
+        nextStatus,
+        action === "reject" ? "Rejected by admin" : undefined
+      );
 
-    if (action === "approve") {
-      toast.success(message);
-    } else {
+      setSubmissions((prev) =>
+        prev.map((sub) =>
+          sub.id === submissionId
+            ? {
+                ...sub,
+                documents: sub.documents.map((doc) =>
+                  doc.id === documentId ? { ...doc, status: nextStatus } : doc
+                ),
+              }
+            : sub
+        )
+      );
+
+      toast.success(
+        nextStatus === "approved"
+          ? "Document approved successfully"
+          : "Document rejected"
+      );
+    } catch (error: any) {
+      const message =
+        error instanceof Error ? error.message : "Failed to update document";
       toast.error(message);
+    } finally {
+      setProcessingDocumentId(null);
     }
   };
 
-  const pendingSubmissions = submissions.filter((sub) =>
-    sub.documents.some((doc) => doc.status === "pending")
+  const pendingSubmissions = useMemo(
+    () =>
+      submissions.filter((sub) =>
+        sub.documents.some((doc) => doc.status === "pending")
+      ),
+    [submissions]
   );
-  const reviewedSubmissions = submissions.filter((sub) =>
-    sub.documents.every((doc) => doc.status !== "pending")
+
+  const reviewedSubmissions = useMemo(
+    () =>
+      submissions.filter((sub) =>
+        sub.documents.every((doc) => doc.status !== "pending")
+      ),
+    [submissions]
   );
 
   const documentStatusStyles: Record<SubmissionDocument["status"], string> = {
@@ -291,7 +325,12 @@ export default function ToReviewPage() {
           </div>
         </div>
         <div className="p-6">
-          {pendingSubmissions.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-12">
+              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">Loading submissions...</p>
+            </div>
+          ) : pendingSubmissions.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600">No pending documents to review</p>
@@ -490,6 +529,7 @@ export default function ToReviewPage() {
                                   "approve"
                                 )
                               }
+                              disabled={processingDocumentId === document.id}
                               className="text-green-600 hover:text-green-700 hover:bg-green-50 transition-all duration-200 rounded-full"
                             >
                               <Check className="w-4 h-4" />
@@ -505,6 +545,7 @@ export default function ToReviewPage() {
                                   "reject"
                                 )
                               }
+                              disabled={processingDocumentId === document.id}
                               className="text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200 rounded-full"
                             >
                               <X className="w-4 h-4" />
@@ -755,14 +796,18 @@ export default function ToReviewPage() {
               </Button>
             </div>
             <div className="p-4 overflow-auto max-h-[calc(90vh-80px)] flex items-center justify-center">
+              {isImageLoading && <Loading message="Loading image..." />}
               <img
                 src={selectedImage.url}
                 alt={selectedImage.label}
                 className="max-w-full max-h-[calc(90vh-120px)] object-contain rounded"
+                onLoad={() => setIsImageLoading(false)}
                 onError={() => {
                   toast.error("Failed to load image");
                   setSelectedImage(null);
+                  setIsImageLoading(false);
                 }}
+                style={{ display: isImageLoading ? "none" : "block" }}
               />
             </div>
           </div>

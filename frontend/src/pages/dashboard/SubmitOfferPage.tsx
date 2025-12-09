@@ -1,14 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Package, Truck, DollarSign } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { verificationApi } from "@/lib/api";
 
 export default function SubmitOfferPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [verificationStatus, setVerificationStatus] = useState<
+    "loading" | "verified" | "pending" | "rejected"
+  >("loading");
   const [formData, setFormData] = useState({
     offerAmount: "",
     estimatedDeliveryTime: "",
@@ -33,8 +39,46 @@ export default function SubmitOfferPage() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  useEffect(() => {
+    const loadVerification = async () => {
+      if (!user) return;
+      try {
+        const res = await verificationApi.getDocuments();
+        const docs = Array.isArray(res.data) ? res.data : [];
+        const hasRejected = docs.some((d) => d.status === "rejected");
+        const hasPending = docs.some((d) => d.status === "pending");
+        if (user.is_verified) {
+          setVerificationStatus("verified");
+        } else if (hasRejected) {
+          setVerificationStatus("rejected");
+        } else if (hasPending || docs.length === 0) {
+          setVerificationStatus("pending");
+        } else {
+          setVerificationStatus("pending");
+        }
+      } catch {
+        setVerificationStatus(user?.is_verified ? "verified" : "pending");
+      }
+    };
+    void loadVerification();
+  }, [user]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (verificationStatus === "loading") {
+      toast.error("Please wait while we check your verification status");
+      return;
+    }
+
+    if (verificationStatus !== "verified") {
+      toast.error(
+        verificationStatus === "rejected"
+          ? "Your documents were rejected. Please resubmit before placing offers."
+          : "Your documents are pending. Please wait for approval before placing offers."
+      );
+      return;
+    }
 
     if (
       !formData.offerAmount ||
@@ -77,6 +121,22 @@ export default function SubmitOfferPage() {
           </p>
         </div>
       </div>
+
+      {verificationStatus !== "verified" && (
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-4">
+          <p className="font-semibold">
+            You must have approved documents before submitting an offer.
+          </p>
+          <p className="text-sm mt-1">
+            Current status:{" "}
+            {verificationStatus === "loading"
+              ? "Checking..."
+              : verificationStatus === "rejected"
+              ? "Rejected - please resubmit your documents."
+              : "Pending review."}
+          </p>
+        </div>
+      )}
 
       {/* Bid Summary */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">

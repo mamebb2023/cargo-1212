@@ -54,8 +54,12 @@ export default function LoginPage() {
       }
       toast.success(response.message || "Login successful!");
       navigate("/dashboard/bids");
-    } catch (error: any) {
-      toast.error(error.message || "Login failed");
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message || "Login failed");
+      } else {
+        toast.error("Login failed");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -110,7 +114,12 @@ export default function LoginPage() {
               )}
             </div>
 
-            <Button type="submit" className="w-full" variant="secondary" disabled={isLoading}>
+            <Button
+              type="submit"
+              className="w-full"
+              variant="secondary"
+              disabled={isLoading}
+            >
               {isLoading ? "Logging in..." : "Login"}
             </Button>
           </form>

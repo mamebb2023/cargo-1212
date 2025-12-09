@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -6,12 +6,15 @@ import {
   LogOut,
   ChevronLeft,
   Shield,
+  Bell,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout, loading } = useAuth();
 
   const menuItems = [
     {
@@ -24,16 +27,22 @@ export default function AdminLayout() {
       label: "To Review",
       path: "/admin/to-review",
     },
+    {
+      icon: Bell,
+      label: "Notifications",
+      path: "/dashboard/notifications",
+    },
   ];
 
   const isActive = (path: string) => {
     return location.pathname === path;
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("isAdmin");
-    navigate("/admin/login");
-  };
+  useEffect(() => {
+    if (!loading && (!user || user.role !== "admin")) {
+      navigate("/login");
+    }
+  }, [user, loading, navigate]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -101,7 +110,7 @@ export default function AdminLayout() {
         {/* Logout Button */}
         <div className="p-4 border-t border-gray-200 shrink-0">
           <button
-            onClick={handleLogout}
+            onClick={() => logout()}
             className={`flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors w-full ${
               !sidebarOpen && "justify-center"
             }`}

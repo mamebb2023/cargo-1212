@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   Settings,
   LogOut,
+  Bell,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -26,24 +27,39 @@ export default function DashboardLayout() {
       .join("") || "CB";
 
   const isCarrier = user?.role === "carrier";
+  const isAdmin = user?.role === "admin";
 
   const menuItems = [
     {
       icon: LayoutDashboard,
-      label: "Dashboard",
-      path: "/dashboard",
+      label: "Stats",
+      path: "/dashboard/stats",
     },
     {
       icon: Package,
       label: "Bids",
       path: "/dashboard/bids",
     },
-    !isCarrier && {
+    (!isCarrier || isAdmin) && {
       icon: FileText,
       label: "My Bids",
       path: "/dashboard/my-bids",
     },
-  ].filter(Boolean) as { icon: typeof LayoutDashboard; label: string; path: string }[];
+    {
+      icon: Bell,
+      label: "Notifications",
+      path: "/dashboard/notifications",
+    },
+    isAdmin && {
+      icon: FileText,
+      label: "To Review",
+      path: "/dashboard/to-review",
+    },
+  ].filter(Boolean) as {
+    icon: typeof LayoutDashboard;
+    label: string;
+    path: string;
+  }[];
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {

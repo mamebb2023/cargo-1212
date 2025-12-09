@@ -11,7 +11,8 @@ class UserManager(BaseUserManager):
         if not email:
             raise ValueError("The Email must be set")
         email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
+        username = extra_fields.pop("username", None) or email
+        user = self.model(email=email, username=username, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -38,6 +39,9 @@ class UserManager(BaseUserManager):
 
 class User(AbstractUser):
     """Custom user model for cargo bidding system"""
+
+    # Remove username uniqueness requirement; use email instead
+    username = models.CharField(max_length=150, unique=False, blank=True, null=True)
 
     ROLE_CHOICES = [
         ("shipper", "Shipper"),

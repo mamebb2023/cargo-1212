@@ -1,8 +1,4 @@
-// Countries and Cities Data
-export interface CountryCity {
-  country: string;
-  cities: string[];
-}
+import type { CountryCity } from "@/types";
 
 export const countriesWithCities: CountryCity[] = [
   {

@@ -1,162 +1,95 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Users, FileText, Package, TrendingUp } from "lucide-react";
+import { adminApi } from "@/lib/api";
+import { toast } from "react-hot-toast";
+import type { User, QueryParams, AdminStats, AdminBid } from "@/types";
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
   const [showMore, setShowMore] = useState(false);
+  const [stats, setStats] = useState<AdminStats>({});
+  const [users, setUsers] = useState<User[]>([]);
+  const [bids, setBids] = useState<AdminBid[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is admin
-    const isAdmin = sessionStorage.getItem("isAdmin");
-    if (!isAdmin) {
-      navigate("/admin/login");
-    }
-  }, [navigate]);
+    const load = async () => {
+      try {
+        setLoading(true);
+        const [statsRes, usersRes, bidsRes] = await Promise.all([
+          adminApi.getDashboard(),
+          adminApi.getUsers({ page_size: 10 } as QueryParams),
+          adminApi.getBids({ page_size: 5 } as QueryParams),
+        ]);
 
-  // Dummy user data
-  const allUsers = [
-    {
-      id: 1,
-      name: "John Doe",
-      email: "john@example.com",
-      role: "Shipper",
-      verified: true,
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      email: "jane@example.com",
-      role: "Carrier",
-      verified: true,
-    },
-    {
-      id: 3,
-      name: "Mike Johnson",
-      email: "mike@example.com",
-      role: "Shipper",
-      verified: false,
-    },
-    {
-      id: 4,
-      name: "Sarah Williams",
-      email: "sarah@example.com",
-      role: "Carrier",
-      verified: true,
-    },
-    {
-      id: 5,
-      name: "David Brown",
-      email: "david@example.com",
-      role: "Shipper",
-      verified: true,
-    },
-    {
-      id: 6,
-      name: "Emily Davis",
-      email: "emily@example.com",
-      role: "Carrier",
-      verified: false,
-    },
-    {
-      id: 7,
-      name: "Robert Wilson",
-      email: "robert@example.com",
-      role: "Shipper",
-      verified: true,
-    },
-    {
-      id: 8,
-      name: "Lisa Anderson",
-      email: "lisa@example.com",
-      role: "Carrier",
-      verified: true,
-    },
-    {
-      id: 9,
-      name: "James Taylor",
-      email: "james@example.com",
-      role: "Shipper",
-      verified: true,
-    },
-    {
-      id: 10,
-      name: "Maria Martinez",
-      email: "maria@example.com",
-      role: "Carrier",
-      verified: false,
-    },
-    {
-      id: 11,
-      name: "William Garcia",
-      email: "william@example.com",
-      role: "Shipper",
-      verified: true,
-    },
-    {
-      id: 12,
-      name: "Patricia Rodriguez",
-      email: "patricia@example.com",
-      role: "Carrier",
-      verified: true,
-    },
-    {
-      id: 13,
-      name: "Michael Lee",
-      email: "michael@example.com",
-      role: "Shipper",
-      verified: true,
-    },
-    {
-      id: 14,
-      name: "Linda White",
-      email: "linda@example.com",
-      role: "Carrier",
-      verified: false,
-    },
-    {
-      id: 15,
-      name: "Thomas Harris",
-      email: "thomas@example.com",
-      role: "Shipper",
-      verified: true,
-    },
-  ];
+        if (statsRes.success && statsRes.data) {
+          setStats(statsRes.data as AdminStats);
+        } else {
+          toast.error(statsRes.message || "Failed to load stats");
+        }
 
-  const displayedUsers = showMore ? allUsers : allUsers.slice(0, 5);
-  const remainingCount = allUsers.length - 5;
+        if (usersRes.success && Array.isArray(usersRes.data)) {
+          setUsers(usersRes.data as User[]);
+        } else {
+          toast.error(usersRes.message || "Failed to load users");
+        }
 
-  const stats = [
-    {
-      icon: Users,
-      label: "Total Users",
-      value: "156",
-      change: "+12%",
-      color: "bg-blue-500",
-    },
-    {
-      icon: Package,
-      label: "Active Bids",
-      value: "42",
-      change: "+8%",
-      color: "bg-green-500",
-    },
-    {
-      icon: FileText,
-      label: "Pending Reviews",
-      value: "8",
-      change: "-3%",
-      color: "bg-yellow-500",
-    },
-    {
-      icon: TrendingUp,
-      label: "Revenue (ETB)",
-      value: "125,000",
-      change: "+15%",
-      color: "bg-purple-500",
-    },
-  ];
+        if (bidsRes.success && Array.isArray(bidsRes.data)) {
+          setBids(bidsRes.data as AdminBid[]);
+        } else {
+          toast.error(bidsRes.message || "Failed to load bids");
+        }
+      } catch (error) {
+        if (error && typeof error === "object" && "message" in error) {
+          toast.error(
+            (error as { message?: string }).message ||
+              "Failed to load admin data"
+          );
+        } else {
+          toast.error("Failed to load admin data");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void load();
+  }, []);
+
+  const displayedUsers = showMore ? users : users.slice(0, 5);
+  const remainingCount = Math.max(users.length - 5, 0);
+
+  const statCards = useMemo(
+    () => [
+      {
+        icon: Users,
+        label: "Total Users",
+        value: stats.total_users ?? 0,
+        color: "bg-blue-500",
+      },
+      {
+        icon: Package,
+        label: "Active Bids",
+        value: stats.active_bids ?? 0,
+        color: "bg-green-500",
+      },
+      {
+        icon: FileText,
+        label: "Pending Reviews",
+        value: stats.pending_documents ?? 0,
+        color: "bg-yellow-500",
+      },
+      {
+        icon: TrendingUp,
+        label: "Total Offers",
+        value: stats.total_offers ?? 0,
+        color: "bg-purple-500",
+      },
+    ],
+    [stats]
+  );
 
   return (
     <div className="space-y-6">
@@ -169,7 +102,7 @@ export default function AdminDashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => {
+        {statCards.map((stat) => {
           const Icon = stat.icon;
           return (
             <div
@@ -180,9 +113,8 @@ export default function AdminDashboardPage() {
                 <div>
                   <p className="text-sm text-gray-600">{stat.label}</p>
                   <p className="text-2xl font-bold text-gray-900 mt-1">
-                    {stat.value}
+                    {loading ? "…" : stat.value}
                   </p>
-                  <p className="text-xs text-green-600 mt-1">{stat.change}</p>
                 </div>
                 <div className={`${stat.color} p-3 rounded-lg`}>
                   <Icon className="w-6 h-6 text-white" />
@@ -211,13 +143,15 @@ export default function AdminDashboardPage() {
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                      {user.name
+                      {user.full_name
                         .split(" ")
                         .map((n) => n[0])
                         .join("")}
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{user.name}</p>
+                      <p className="font-medium text-gray-900">
+                        {user.full_name}
+                      </p>
                       <p className="text-sm text-gray-600">{user.email}</p>
                     </div>
                   </div>
@@ -227,12 +161,12 @@ export default function AdminDashboardPage() {
                     </span>
                     <span
                       className={`px-3 py-1 text-xs font-medium rounded ${
-                        user.verified
+                        user.is_verified
                           ? "bg-green-100 text-green-700"
                           : "bg-yellow-100 text-yellow-700"
                       }`}
                     >
-                      {user.verified ? "Verified" : "Pending"}
+                      {user.is_verified ? "Verified" : "Pending"}
                     </span>
                   </div>
                 </div>
@@ -268,43 +202,7 @@ export default function AdminDashboardPage() {
           </div>
           <div className="p-6">
             <div className="space-y-4">
-              {[
-                {
-                  id: 1,
-                  title: "Freight Transport from Addis Ababa to Dire Dawa",
-                  description:
-                    "Transport 50 tons of construction materials. Delivery required within 3 days.",
-                  offers: 5,
-                },
-                {
-                  id: 2,
-                  title: "Cargo Delivery to Mekelle",
-                  description:
-                    "Urgent delivery of medical supplies. Requires refrigerated transport.",
-                  offers: 8,
-                },
-                {
-                  id: 3,
-                  title: "Bulk Goods Transport to Bahir Dar",
-                  description:
-                    "Regular transport service for monthly delivery. Long-term contract available.",
-                  offers: 3,
-                },
-                {
-                  id: 4,
-                  title: "Express Delivery to Hawassa",
-                  description:
-                    "Small cargo delivery. Same-day service preferred.",
-                  offers: 12,
-                },
-                {
-                  id: 5,
-                  title: "Agricultural Products Delivery to Gondar",
-                  description:
-                    "Transport fresh agricultural products. Temperature-controlled transport required.",
-                  offers: 2,
-                },
-              ].map((bid) => (
+              {bids.map((bid) => (
                 <div
                   key={bid.id}
                   onClick={() => navigate(`/dashboard/bids/${bid.id}`)}
@@ -319,8 +217,8 @@ export default function AdminDashboardPage() {
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <Package className="w-4 h-4" />
                     <span>
-                      <strong>{bid.offers}</strong>{" "}
-                      {bid.offers === 1 ? "offer" : "offers"}
+                      <strong>{bid.offers_count ?? 0}</strong>{" "}
+                      {(bid.offers_count ?? 0) === 1 ? "offer" : "offers"}
                     </span>
                   </div>
                 </div>

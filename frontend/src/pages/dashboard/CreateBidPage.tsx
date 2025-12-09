@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Input } from "@/components/ui/input";
@@ -6,9 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { ArrowLeft, CreditCard } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { verificationApi } from "@/lib/api";
 
 export default function CreateBidPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [verificationStatus, setVerificationStatus] = useState<
+    "loading" | "verified" | "pending" | "rejected"
+  >("loading");
   const [showSummary, setShowSummary] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -24,16 +30,51 @@ export default function CreateBidPage() {
     specialRequirements: "",
   });
 
-  const handleChange = (
-    field: string,
-    value: string
-  ) => {
+  const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  useEffect(() => {
+    const loadVerification = async () => {
+      if (!user) return;
+      try {
+        const res = await verificationApi.getDocuments();
+        const docs = Array.isArray(res.data) ? res.data : [];
+        const hasRejected = docs.some((d) => d.status === "rejected");
+        const hasPending = docs.some((d) => d.status === "pending");
+        if (user.is_verified) {
+          setVerificationStatus("verified");
+        } else if (hasRejected) {
+          setVerificationStatus("rejected");
+        } else if (hasPending || docs.length === 0) {
+          setVerificationStatus("pending");
+        } else {
+          setVerificationStatus("pending");
+        }
+      } catch {
+        setVerificationStatus(user?.is_verified ? "verified" : "pending");
+      }
+    };
+    void loadVerification();
+  }, [user]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    if (verificationStatus === "loading") {
+      toast.error("Please wait while we check your verification status");
+      return;
+    }
+
+    if (verificationStatus !== "verified") {
+      toast.error(
+        verificationStatus === "rejected"
+          ? "Your documents were rejected. Please resubmit before posting a bid."
+          : "Your documents are pending. Please wait for approval before posting a bid."
+      );
+      return;
+    }
+
     // Validate all fields are filled
     const requiredFields = [
       "title",
@@ -47,9 +88,11 @@ export default function CreateBidPage() {
       "deadline",
       "status",
     ];
-    
-    const missingFields = requiredFields.filter((field) => !formData[field as keyof typeof formData]);
-    
+
+    const missingFields = requiredFields.filter(
+      (field) => !formData[field as keyof typeof formData]
+    );
+
     if (missingFields.length > 0) {
       toast.error("Please fill in all required fields");
       return;
@@ -60,7 +103,9 @@ export default function CreateBidPage() {
 
   const handlePayment = () => {
     // Handle payment logic here
-    toast.success("Payment successful! Your bid has been submitted for review.");
+    toast.success(
+      "Payment successful! Your bid has been submitted for review."
+    );
     navigate("/dashboard/bids");
   };
 
@@ -99,11 +144,15 @@ export default function CreateBidPage() {
                   <p className="text-gray-900">ETB {formData.budget}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">CPO Amount</p>
+                  <p className="text-sm font-medium text-gray-500">
+                    CPO Amount
+                  </p>
                   <p className="text-gray-900">ETB {formData.cpoAmount}</p>
                 </div>
                 <div className="col-span-2">
-                  <p className="text-sm font-medium text-gray-500">Description</p>
+                  <p className="text-sm font-medium text-gray-500">
+                    Description
+                  </p>
                   <p className="text-gray-900">{formData.description}</p>
                 </div>
               </div>
@@ -119,11 +168,15 @@ export default function CreateBidPage() {
                   <p className="text-gray-900">{formData.origin}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Destination</p>
+                  <p className="text-sm font-medium text-gray-500">
+                    Destination
+                  </p>
                   <p className="text-gray-900">{formData.destination}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Cargo Type</p>
+                  <p className="text-sm font-medium text-gray-500">
+                    Cargo Type
+                  </p>
                   <p className="text-gray-900">{formData.cargoType}</p>
                 </div>
                 <div>
@@ -143,7 +196,9 @@ export default function CreateBidPage() {
                     <p className="text-sm font-medium text-gray-500">
                       Special Requirements
                     </p>
-                    <p className="text-gray-900">{formData.specialRequirements}</p>
+                    <p className="text-gray-900">
+                      {formData.specialRequirements}
+                    </p>
                   </div>
                 )}
               </div>
@@ -160,7 +215,8 @@ export default function CreateBidPage() {
                 <CreditCard className="w-8 h-8 text-blue-600" />
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                This fee covers bid posting and verification. Payment is required to publish your bid.
+                This fee covers bid posting and verification. Payment is
+                required to publish your bid.
               </p>
             </div>
 
@@ -196,7 +252,26 @@ export default function CreateBidPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
+      {verificationStatus !== "verified" && (
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-4">
+          <p className="font-semibold">
+            You must have approved documents before posting a bid.
+          </p>
+          <p className="text-sm mt-1">
+            Current status:{" "}
+            {verificationStatus === "loading"
+              ? "Checking..."
+              : verificationStatus === "rejected"
+              ? "Rejected - please resubmit your documents."
+              : "Pending review."}
+          </p>
+        </div>
+      )}
+
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white rounded-lg border border-gray-200 p-6 space-y-6"
+      >
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">
@@ -357,7 +432,9 @@ export default function CreateBidPage() {
               rows={3}
               placeholder="Any special requirements or conditions for the transport"
               value={formData.specialRequirements}
-              onChange={(e) => handleChange("specialRequirements", e.target.value)}
+              onChange={(e) =>
+                handleChange("specialRequirements", e.target.value)
+              }
               className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
           </div>
@@ -379,4 +456,3 @@ export default function CreateBidPage() {
     </div>
   );
 }
-

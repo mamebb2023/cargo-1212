@@ -18,6 +18,7 @@ import {
   Check,
 } from "lucide-react";
 import { bidsApi, paymentsApi } from "@/lib/api";
+import type { BidDetail, BackendBidDetail } from "@/constant";
 
 export default function BidDetailsPage() {
   const { id } = useParams();
@@ -29,7 +30,7 @@ export default function BidDetailsPage() {
   >(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
-  const [bid, setBid] = useState<any>(null);
+  const [bid, setBid] = useState<BidDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Fetch bid details on component mount
@@ -43,12 +44,39 @@ export default function BidDetailsPage() {
     try {
       setLoading(true);
       const response = await bidsApi.getBidDetails(bidId);
-      setBid(response.data);
+      const data = response.data as BackendBidDetail;
+      const mapped: BidDetail = {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        origin: data.origin,
+        destination: data.destination,
+        cargoType: data.cargo_type || data.cargoType || "",
+        weight: data.weight,
+        deadline: data.deadline,
+        budget: data.budget,
+        postedDate: data.created_at,
+        offers: data.offers_count,
+        lowestOffer: data.lowest_offer,
+        originAddress: data.origin_address,
+        destinationAddress: data.destination_address,
+        specialRequirements: data.special_requirements,
+        shipperName:
+          data.user?.company_name || data.user?.full_name || data.user?.email,
+        shipperPhone: data.user?.phone,
+        shipperEmail: data.user?.email,
+        bidFilesUrl: data.bid_files_url,
+      };
+      setBid(mapped);
       // For now, assume user hasn't paid - in real app check payment status
       setHasPaid(false);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to load bid details");
-      setBid(null);
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message || "Failed to load bid details");
+        setBid(null);
+      } else {
+        toast.error("Failed to load bid details");
+      }
     } finally {
       setLoading(false);
     }
@@ -69,6 +97,11 @@ export default function BidDetailsPage() {
   };
 
   const handlePaymentSubmit = async () => {
+    if (!bid) {
+      toast.error("Bid not loaded yet.");
+      return;
+    }
+
     if (!selectedPaymentMethod || !uploadedFile) {
       toast.error("Please select a payment method and upload a screenshot");
       return;
@@ -76,19 +109,25 @@ export default function BidDetailsPage() {
 
     try {
       const formData = new FormData();
-      formData.append('amount', '200.00'); // ETB 200
-      formData.append('payment_method', selectedPaymentMethod);
-      formData.append('reference_number', `REF-${Date.now()}`);
-      formData.append('payment_proof', uploadedFile);
-      formData.append('bid', bid.id.toString());
+      formData.append("amount", "200.00"); // ETB 200
+      formData.append("payment_method", selectedPaymentMethod);
+      formData.append("reference_number", `REF-${Date.now()}`);
+      formData.append("payment_proof", uploadedFile);
+      formData.append("bid", bid.id.toString());
 
       await paymentsApi.createPayment(formData);
 
-      toast.success("Payment submitted successfully and is under review. You will be notified once approved.");
+      toast.success(
+        "Payment submitted successfully and is under review. You will be notified once approved."
+      );
       setHasPaid(true);
       setShowPaymentForm(false);
-    } catch (error: any) {
-      toast.error(error.message || "Payment submission failed");
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message || "Payment submission failed");
+      } else {
+        toast.error("Payment submission failed");
+      }
     }
   };
 

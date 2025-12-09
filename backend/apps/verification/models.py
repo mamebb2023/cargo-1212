@@ -1,5 +1,18 @@
+import os
+import uuid
 from django.db import models
 from django.conf import settings
+
+
+def verification_document_upload_path(instance, filename):
+    """
+    Build a deterministic, readable file name:
+    user_<id>/<document_type>_<uuid><ext>
+    """
+    base, ext = os.path.splitext(filename)
+    user_id = instance.user_id or "unknown"
+    doc_type = (instance.document_type or "document").replace(" ", "_")
+    return f"user_documents/user_{user_id}/{doc_type}_{uuid.uuid4().hex}{ext}"
 
 
 class VerificationDocument(models.Model):
@@ -7,51 +20,48 @@ class VerificationDocument(models.Model):
 
     DOCUMENT_TYPE_CHOICES = [
         # Shipper documents
-        ('business_license', 'Business License'),
-        ('tax_clearance', 'Tax Clearance Certificate'),
-        ('company_registration', 'Company Registration Document'),
-        ('identity_document', 'Identity Document'),
-
+        ("business_license", "Business License"),
+        ("tax_clearance", "Tax Clearance Certificate"),
+        ("company_registration", "Company Registration Document"),
+        ("identity_document", "Identity Document"),
         # Carrier company documents
-        ('company_business_registration', 'Company Business Registration Doc'),
-        ('company_business_license', 'Company Business License Doc'),
-        ('company_competency_certificate', 'Company Competency Certificate Doc'),
-        ('company_tax_clearance', 'Company Tax Clearance Doc'),
-        ('company_vat_certificate', 'Company VAT Certificate Doc'),
-
+        ("company_business_registration", "Company Business Registration Doc"),
+        ("company_business_license", "Company Business License Doc"),
+        ("company_competency_certificate", "Company Competency Certificate Doc"),
+        ("company_tax_clearance", "Company Tax Clearance Doc"),
+        ("company_vat_certificate", "Company VAT Certificate Doc"),
         # Carrier PLC documents
-        ('plc_registration', 'PLC Registration Doc'),
-        ('plc_business_license', 'PLC Business License Doc'),
-        ('plc_competency_certificate', 'PLC Competency Certificate Doc'),
-        ('plc_tax_clearance', 'PLC Tax Clearance Doc'),
-        ('plc_vat_certificate', 'PLC VAT Certificate Doc'),
-
+        ("plc_registration", "PLC Registration Doc"),
+        ("plc_business_license", "PLC Business License Doc"),
+        ("plc_competency_certificate", "PLC Competency Certificate Doc"),
+        ("plc_tax_clearance", "PLC Tax Clearance Doc"),
+        ("plc_vat_certificate", "PLC VAT Certificate Doc"),
         # Carrier truck owner documents
-        ('truck_business_licence', 'Truck Business Licence'),
+        ("truck_business_licence", "Truck Business Licence"),
     ]
 
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('approved', 'Approved'),
-        ('rejected', 'Rejected'),
+        ("pending", "Pending"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
     ]
 
     # Relationships
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='verification_documents'
+        related_name="verification_documents",
     )
 
     # Document details
     document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPE_CHOICES)
     file = models.FileField(
-        upload_to='user_documents/',
-        help_text="Verification document file"
+        upload_to=verification_document_upload_path,
+        help_text="Verification document file",
     )
 
     # Status
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     rejection_reason = models.TextField(blank=True)
 
     # Timestamps
@@ -65,20 +75,20 @@ class VerificationDocument(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='reviewed_documents',
-        limit_choices_to={'role': 'admin'}
+        related_name="reviewed_documents",
+        limit_choices_to={"role": "admin"},
     )
 
     class Meta:
-        ordering = ['-created_at']
-        unique_together = ['user', 'document_type']  # One document type per user
+        ordering = ["-created_at"]
+        unique_together = ["user", "document_type"]  # One document type per user
 
     def __str__(self):
         return f"{self.document_type} for {self.user.full_name}"
 
     def approve_document(self, admin_user):
         """Approve the document"""
-        self.status = 'approved'
+        self.status = "approved"
         self.reviewed_by = admin_user
         self.reviewed_at = models.functions.Now()
         self.save()
@@ -88,7 +98,7 @@ class VerificationDocument(models.Model):
 
     def reject_document(self, admin_user, reason=""):
         """Reject the document"""
-        self.status = 'rejected'
+        self.status = "rejected"
         self.rejection_reason = reason
         self.reviewed_by = admin_user
         self.reviewed_at = models.functions.Now()
@@ -102,7 +112,9 @@ class VerificationDocument(models.Model):
         user_docs = VerificationDocument.objects.filter(user=self.user)
 
         # Check if all required documents are approved
-        approved_docs = set(user_docs.filter(status='approved').values_list('document_type', flat=True))
+        approved_docs = set(
+            user_docs.filter(status="approved").values_list("document_type", flat=True)
+        )
 
         if set(required_docs).issubset(approved_docs):
             self.user.is_verified = True
@@ -112,32 +124,32 @@ class VerificationDocument(models.Model):
         """Get list of required documents based on user role and type"""
         user = self.user
 
-        if user.role == 'shipper':
+        if user.role == "shipper":
             return [
-                'business_license',
-                'tax_clearance',
-                'company_registration',
-                'identity_document'
+                "business_license",
+                "tax_clearance",
+                "company_registration",
+                "identity_document",
             ]
 
-        elif user.role == 'carrier':
-            if user.carrier_type == 'company':
+        elif user.role == "carrier":
+            if user.carrier_type == "company":
                 return [
-                    'company_business_registration',
-                    'company_business_license',
-                    'company_competency_certificate',
-                    'company_tax_clearance',
-                    'company_vat_certificate'
+                    "company_business_registration",
+                    "company_business_license",
+                    "company_competency_certificate",
+                    "company_tax_clearance",
+                    "company_vat_certificate",
                 ]
-            elif user.carrier_type == 'plc':
+            elif user.carrier_type == "plc":
                 return [
-                    'plc_registration',
-                    'plc_business_license',
-                    'plc_competency_certificate',
-                    'plc_tax_clearance',
-                    'plc_vat_certificate'
+                    "plc_registration",
+                    "plc_business_license",
+                    "plc_competency_certificate",
+                    "plc_tax_clearance",
+                    "plc_vat_certificate",
                 ]
-            elif user.carrier_type == 'truck_owner':
-                return ['truck_business_licence']
+            elif user.carrier_type == "truck_owner":
+                return ["truck_business_licence"]
 
         return []

@@ -6,9 +6,14 @@ import type {
   QueryParams,
   CarrierType,
   User,
+  DashboardOverview,
+  VerificationDocument,
+  AdminStats,
+  AdminBid,
+  NotificationsPayload,
 } from "@/types";
 
-const API_BASE_URL = 'http://localhost:8000/api';
+export const API_BASE_URL = 'http://localhost:8000/api';
 
 // Helper function to get auth token
 const getAuthToken = (): string | null => {
@@ -460,6 +465,10 @@ export const usersApi = {
     return authRequest(endpoint);
   },
 
+  getDashboardOverview: async () => {
+    return authRequest<DashboardOverview>('/users/dashboard-overview/');
+  },
+
   getUserRating: async (userId: number) => {
     return authRequest(`/users/${userId}/rating/`);
   },
@@ -468,7 +477,7 @@ export const usersApi = {
 // Notifications API
 export const notificationsApi = {
   getNotifications: async () => {
-    return authRequest('/notifications/');
+    return authRequest<NotificationsPayload>('/notifications/');
   },
 
   markAsRead: async (notificationId: number) => {
@@ -492,7 +501,7 @@ export const notificationsApi = {
 // Admin API
 export const adminApi = {
   getDashboard: async () => {
-    return authRequest('/admin/dashboard/');
+    return authRequest<AdminStats>('/admin/dashboard/');
   },
 
   getUsers: async (params?: QueryParams) => {
@@ -504,7 +513,7 @@ export const adminApi = {
   getBids: async (params?: QueryParams) => {
     const queryString = buildQueryString(params);
     const endpoint = `/admin/bids/${queryString ? `?${queryString}` : ''}`;
-    return authRequest(endpoint);
+    return authRequest<AdminBid[]>(endpoint);
   },
 
   getOffers: async (params?: QueryParams) => {
@@ -519,5 +528,9 @@ export const adminApi = {
 
   getPendingReviews: async () => {
     return authRequest('/admin/pending-reviews/');
+  },
+
+  getVerificationDocuments: async () => {
+    return authRequest<VerificationDocument[]>('/verification/');
   },
 };

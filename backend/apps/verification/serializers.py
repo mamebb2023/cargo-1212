@@ -57,7 +57,27 @@ class VerificationDocumentCreateSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        validated_data['user'] = self.context['request'].user
+        user = self.context['request'].user
+        document_type = validated_data['document_type']
+        file = validated_data['file']
+
+        # Upsert behaviour: if a document of the same type exists, replace file and reset status
+        existing_doc = VerificationDocument.objects.filter(
+            user=user, document_type=document_type
+        ).first()
+
+        if existing_doc:
+            existing_doc.file = file
+            existing_doc.status = 'pending'
+            existing_doc.rejection_reason = ""
+            existing_doc.reviewed_by = None
+            existing_doc.reviewed_at = None
+            existing_doc.save(
+                update_fields=['file', 'status', 'rejection_reason', 'reviewed_by', 'reviewed_at', 'updated_at']
+            )
+            return existing_doc
+
+        validated_data['user'] = user
         return super().create(validated_data)
 
     def _get_valid_document_types_for_user(self, user):

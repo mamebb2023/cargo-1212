@@ -31,6 +31,65 @@ export interface User {
   updated_at?: string;
 }
 
+export interface BidDetail {
+  id: number;
+  title: string;
+  description: string;
+  origin: string;
+  destination: string;
+  cargoType: string;
+  weight: string;
+  deadline: string;
+  budget: string;
+  postedDate?: string;
+  offers?: number;
+  lowestOffer?: string | null;
+  originAddress?: string;
+  destinationAddress?: string;
+  specialRequirements?: string;
+  shipperName?: string;
+  shipperPhone?: string;
+  shipperEmail?: string;
+  bidFilesUrl?: string | null;
+}
+
+export interface BackendBidDetail {
+  id: number;
+  title: string;
+  description: string;
+  origin: string;
+  destination: string;
+  cargo_type: string;
+  weight: string;
+  deadline: string;
+  budget: string;
+  created_at?: string;
+  offers_count?: number;
+  lowest_offer?: string | null;
+  origin_address?: string;
+  destination_address?: string;
+  special_requirements?: string;
+  bid_files_url?: string | null;
+  cargoType?: string;
+  user?: {
+    company_name?: string;
+    full_name?: string;
+    email?: string;
+    phone?: string;
+  };
+}
+
+export type StatCard = {
+  label: string;
+  value: number | string | undefined;
+  icon: React.ElementType;
+};
+
+export interface CountryCity {
+  country: string;
+  cities: string[];
+}
+
 export interface AuthTokens {
   access_token: string;
   refresh_token: string;
@@ -59,3 +118,82 @@ export interface BackendRegistrationPayload {
 }
 
 export type QueryParams = Record<string, string | number | boolean>;
+
+export interface DashboardStats {
+  total_bids?: number;
+  active_bids?: number;
+  offers_received?: number;
+  accepted_offers?: number;
+  available_bids?: number;
+  my_offers?: number;
+  active_offers?: number;
+  offers?: number;
+  users?: number;
+}
+
+export interface DashboardBidSummary {
+  id: number;
+  title: string;
+  status: string;
+  budget: string;
+  origin: string;
+  destination: string;
+  created_at: string;
+  offers_count: number;
+  lowest_offer?: string | null;
+}
+
+export interface DashboardOverview {
+  stats: DashboardStats;
+  recent_bids: DashboardBidSummary[];
+}
+
+export interface VerificationDocument {
+  id: number;
+  document_type: string;
+  status: "pending" | "approved" | "rejected";
+  rejection_reason?: string | null;
+  file_url?: string | null;
+  created_at?: string;
+  reviewed_at?: string | null;
+  user: User;
+}
+
+export interface AdminStats {
+  total_users: number;
+  active_bids: number;
+  pending_documents: number;
+  pending_payments?: number;
+  total_offers: number;
+  total_ratings?: number;
+}
+
+export interface AdminBid {
+  id: number;
+  title: string;
+  description?: string;
+  budget?: string;
+  status?: string;
+  offers_count?: number;
+  lowest_offer?: string | null;
+  created_at?: string;
+}
+
+export interface Notification {
+  id: number;
+  title: string;
+  message: string;
+  notification_type: string;
+  is_read: boolean;
+  created_at: string;
+  read_at?: string | null;
+  related_bid?: number | null;
+  related_offer?: number | null;
+  related_payment?: number | null;
+  related_document?: number | null;
+}
+
+export interface NotificationsPayload {
+  notifications: Notification[];
+  unread_count: number;
+}

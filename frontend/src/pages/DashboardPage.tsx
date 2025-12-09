@@ -1,56 +1,123 @@
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Package, FileText, TrendingUp, Users } from "lucide-react";
+import {
+  Package,
+  FileText,
+  TrendingUp,
+  CheckCircle,
+  Activity,
+} from "lucide-react";
+import { toast } from "react-hot-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { usersApi } from "@/lib/api";
+import type { DashboardOverview, DashboardStats } from "@/types";
+import type { StatCard } from "@/types";
+
+const formatDate = (value?: string) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isCarrier = user?.role === "carrier";
-  const stats = [
-    {
-      label: "Total Bids",
-      value: "24",
-      icon: Package,
-      change: "+12%",
-      positive: true,
-    },
-    {
-      label: "Active Bids",
-      value: "8",
-      icon: FileText,
-      change: "+5%",
-      positive: true,
-    },
-    {
-      label: "My Offers",
-      value: "15",
-      icon: TrendingUp,
-      change: "+8%",
-      positive: true,
-    },
-    {
-      label: "Connected Users",
-      value: "142",
-      icon: Users,
-      change: "+3%",
-      positive: true,
-    },
-  ];
+
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentBids, setRecentBids] = useState<
+    DashboardOverview["recent_bids"]
+  >([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const response = await usersApi.getDashboardOverview();
+        if (response.success && response.data) {
+          setStats(response.data.stats);
+          setRecentBids(response.data.recent_bids || []);
+        } else {
+          toast.error(response.message || "Failed to load dashboard data");
+        }
+      } catch (error) {
+        if (error && typeof error === "object" && "message" in error) {
+          toast.error(
+            (error as { message?: string }).message ||
+              "Failed to load dashboard data"
+          );
+        } else {
+          toast.error("Failed to load dashboard data");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void load();
+  }, []);
+
+  const statCards: StatCard[] = useMemo(() => {
+    if (isCarrier) {
+      return [
+        {
+          label: "Available Bids",
+          value: stats?.available_bids ?? 0,
+          icon: Package,
+        },
+        { label: "My Offers", value: stats?.my_offers ?? 0, icon: TrendingUp },
+        {
+          label: "Active Offers",
+          value: stats?.active_offers ?? 0,
+          icon: Activity,
+        },
+        {
+          label: "Accepted Offers",
+          value: stats?.accepted_offers ?? 0,
+          icon: CheckCircle,
+        },
+      ];
+    }
+
+    return [
+      { label: "My Bids", value: stats?.total_bids ?? 0, icon: Package },
+      { label: "Active Bids", value: stats?.active_bids ?? 0, icon: FileText },
+      {
+        label: "Offers Received",
+        value: stats?.offers_received ?? 0,
+        icon: TrendingUp,
+      },
+      {
+        label: "Accepted Offers",
+        value: stats?.accepted_offers ?? 0,
+        icon: CheckCircle,
+      },
+    ];
+  }, [isCarrier, stats]);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-1">
-          Welcome back {user?.full_name ? `, ${user.full_name}` : ""}{" "}
-          {user?.role ? `(${user.role})` : ""}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 mt-1">
+            Welcome back {user?.full_name ? `, ${user.full_name}` : ""}{" "}
+            {user?.role ? `(${user.role})` : ""}
+          </p>
+        </div>
         <div className="mt-4 flex gap-3">
           {isCarrier ? (
             <Button
               variant="secondary"
               onClick={() => navigate("/dashboard/bids")}
+              disabled={loading}
             >
               Browse Bids
             </Button>
@@ -58,6 +125,7 @@ export default function DashboardPage() {
             <Button
               variant="secondary"
               onClick={() => navigate("/dashboard/bids/create")}
+              disabled={loading}
             >
               Create a Bid
             </Button>
@@ -67,8 +135,12 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => {
+        {statCards.map((stat) => {
           const Icon = stat.icon;
+          const displayValue =
+            typeof stat.value === "number"
+              ? stat.value.toLocaleString()
+              : stat.value ?? "—";
           return (
             <div
               key={stat.label}
@@ -78,14 +150,7 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-sm text-gray-600">{stat.label}</p>
                   <p className="text-2xl font-bold text-gray-900 mt-1">
-                    {stat.value}
-                  </p>
-                  <p
-                    className={`text-xs mt-1 ${
-                      stat.positive ? "text-green-600" : "text-red-600"
-                    }`}
-                  >
-                    {stat.change} from last month
+                    {loading ? "…" : displayValue}
                   </p>
                 </div>
                 <div className="p-3 bg-blue-50 rounded-lg">
@@ -104,24 +169,34 @@ export default function DashboardPage() {
             Recent Bids
           </h2>
           <div className="space-y-3">
-            {[1, 2, 3].map((item) => (
-              <div
-                key={item}
-                className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    Freight Transport Bid #{item}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Posted 2 hours ago
-                  </p>
+            {loading ? (
+              <p className="text-sm text-gray-500">Loading recent bids…</p>
+            ) : recentBids.length === 0 ? (
+              <p className="text-sm text-gray-500">No bids yet.</p>
+            ) : (
+              recentBids.map((bid) => (
+                <div
+                  key={bid.id}
+                  className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {bid.title}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {formatDate(bid.created_at)} • {bid.origin} →{" "}
+                      {bid.destination}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Budget: {bid.budget} | Offers: {bid.offers_count}
+                    </p>
+                  </div>
+                  <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded capitalize">
+                    {bid.status}
+                  </span>
                 </div>
-                <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded">
-                  Active
-                </span>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -130,17 +205,19 @@ export default function DashboardPage() {
             Quick Actions
           </h2>
           <div className="space-y-2">
-            <button
-              onClick={() => navigate("/dashboard/bids/create")}
-              className="w-full text-left px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <p className="text-sm font-medium text-gray-900">
-                Create New Bid
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Post a new freight transport opportunity
-              </p>
-            </button>
+            {!isCarrier && (
+              <button
+                onClick={() => navigate("/dashboard/bids/create")}
+                className="w-full text-left px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <p className="text-sm font-medium text-gray-900">
+                  Create New Bid
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Post a new freight transport opportunity
+                </p>
+              </button>
+            )}
             <button
               onClick={() => navigate("/dashboard/bids")}
               className="w-full text-left px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"

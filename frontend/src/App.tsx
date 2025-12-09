@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/auth/LoginPage";
@@ -7,25 +7,28 @@ import AboutPage from "@/pages/AboutPage";
 import ContactPage from "@/pages/ContactPage";
 import TermsPage from "@/pages/TermsPage";
 import PrivacyPage from "@/pages/PrivacyPage";
-import DashboardPage from "@/pages/DashboardPage";
 import BidsPage from "@/pages/dashboard/BidsPage";
 import CreateBidPage from "@/pages/dashboard/CreateBidPage";
 import BidDetailsPage from "@/pages/dashboard/BidDetailsPage";
 import SubmitOfferPage from "@/pages/dashboard/SubmitOfferPage";
 import MyBidsPage from "@/pages/dashboard/MyBidsPage";
 import ProfilePage from "@/pages/dashboard/ProfilePage";
+import SettingsPage from "@/pages/dashboard/SettingsPage";
+import NotificationsPage from "@/pages/dashboard/NotificationsPage";
+import StatsPage from "@/pages/dashboard/StatsPage";
+import SubmitAgainPage from "@/pages/dashboard/SubmitAgainPage";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
-import AdminLoginPage from "@/pages/admin/AdminLoginPage";
-import AdminDashboardPage from "@/pages/admin/AdminDashboardPage";
 import ToReviewPage from "@/pages/admin/ToReviewPage";
-import AdminLayout from "@/components/layouts/AdminLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import AdminRoute from "@/components/auth/AdminRoute";
+import NotFoundPage from "@/pages/NotFoundPage";
+import AuthRedirect from "@/components/auth/AuthRedirect";
 
 function App() {
   return (
     <BrowserRouter>
       <Toaster
-        position="top-center"
+        position="top-right"
         toastOptions={{
           duration: 3000,
           style: {
@@ -53,8 +56,22 @@ function App() {
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route
+          path="/login"
+          element={
+            <AuthRedirect>
+              <LoginPage />
+            </AuthRedirect>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <AuthRedirect>
+              <RegisterPage />
+            </AuthRedirect>
+          }
+        />
 
         <Route
           path="/dashboard"
@@ -64,20 +81,29 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<DashboardPage />} />
+          <Route index element={<Navigate to="stats" replace />} />
+          <Route path="stats" element={<StatsPage />} />
           <Route path="bids" element={<BidsPage />} />
           <Route path="bids/create" element={<CreateBidPage />} />
           <Route path="bids/:id" element={<BidDetailsPage />} />
           <Route path="bids/:id/submit-offer" element={<SubmitOfferPage />} />
           <Route path="my-bids" element={<MyBidsPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="submit-again" element={<SubmitAgainPage />} />
+          <Route
+            path="to-review"
+            element={
+              <AdminRoute>
+                <ToReviewPage />
+              </AdminRoute>
+            }
+          />
         </Route>
 
-        <Route path="/admin/login" element={<AdminLoginPage />} />
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route path="dashboard" element={<AdminDashboardPage />} />
-          <Route path="to-review" element={<ToReviewPage />} />
-        </Route>
+        {/* 404 page */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

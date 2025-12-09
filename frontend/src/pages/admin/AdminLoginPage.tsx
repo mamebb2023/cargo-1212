@@ -5,23 +5,40 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Shield } from "lucide-react";
+import { authApi } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const { setSession } = useAuth();
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Check if credentials match
-    if (email === "admin@admin.com" && password === "12345678") {
+    setLoading(true);
+    try {
+      const response = await authApi.login(email, password);
+      if (!response.data?.user) {
+        toast.error(response.message || "Login failed");
+        return;
+      }
+      if (response.data.user.role !== "admin") {
+        toast.error("Admin role required");
+        return;
+      }
+      setSession({
+        user: response.data.user,
+        access_token: response.data.access_token,
+        refresh_token: response.data.refresh_token,
+      });
       toast.success("Admin login successful!");
-      // Store admin session (in a real app, use proper auth)
-      sessionStorage.setItem("isAdmin", "true");
       navigate("/admin/dashboard");
-    } else {
-      toast.error("Invalid admin credentials");
+    } catch (error: any) {
+      toast.error(error?.message || "Login failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -65,8 +82,8 @@ export default function AdminLoginPage() {
                 />
               </div>
 
-              <Button type="submit" className="w-full" variant="secondary">
-                Login as Admin
+              <Button type="submit" className="w-full" variant="secondary" disabled={loading}>
+                {loading ? "Logging in..." : "Login as Admin"}
               </Button>
             </form>
           </div>

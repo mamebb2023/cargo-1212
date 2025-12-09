@@ -23,8 +23,8 @@ class RolePermissionMiddleware(MiddlewareMixin):
             "/api/users/top-rated/": ["shipper", "carrier", "admin"],
             # Bid endpoints
             "/api/bids/": [
-                "shipper",
-                # "carrier",
+                # "shipper",
+                "carrier",
                 "admin",
             ],  # Shippers create/list, carriers can list
             "/api/bids/create/": ["shipper"],

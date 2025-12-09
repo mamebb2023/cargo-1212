@@ -170,23 +170,20 @@ class UserLoginSerializer(serializers.Serializer):
     password = serializers.CharField()
 
     def validate(self, data):
-        email = data.get("email")
-        password = data.get("password")
+        email = (data.get("email") or "").strip().lower()
+        password = data.get("password") or ""
 
-        if email and password:
-            user = authenticate(email=email, password=password)
-            if not user:
-                raise serializers.ValidationError(
-                    {"detail": "Invalid email or password."}
-                )
-            if not user.is_active:
-                raise serializers.ValidationError(
-                    {"detail": "User account is disabled."}
-                )
-        else:
+        if not email or not password:
             raise serializers.ValidationError(
-                {"detail": "Must include email and password."}
+                {"message": "Must include email and password."}
             )
+
+        user = authenticate(email=email, password=password)
+        if not user:
+            raise serializers.ValidationError({"message": "Invalid email or password."})
+
+        if not user.is_active:
+            raise serializers.ValidationError({"message": "User account is disabled."})
 
         data["user"] = user
         return data
