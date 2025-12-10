@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -11,10 +11,12 @@ import {
   Bell,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { notificationsApi } from "@/lib/api";
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
   const { user, logout } = useAuth();
 
@@ -28,6 +30,50 @@ export default function DashboardLayout() {
 
   const isCarrier = user?.role === "carrier";
   const isAdmin = user?.role === "admin";
+
+  useEffect(() => {
+    const loadUnread = async () => {
+      try {
+        const res = await notificationsApi.getUnreadCount();
+        const count =
+          res && typeof res.data?.unread_count === "number"
+            ? res.data.unread_count
+            : 0;
+        setUnreadCount(count);
+      } catch {
+        setUnreadCount(0);
+      }
+    };
+    void loadUnread();
+  }, []);
+
+  useEffect(() => {
+    const handleUpdated = () => {
+      void (async () => {
+        try {
+          const res = await notificationsApi.getUnreadCount();
+          const count =
+            res && typeof res.data?.unread_count === "number"
+              ? res.data.unread_count
+              : 0;
+          setUnreadCount(count);
+        } catch {
+          setUnreadCount(0);
+        }
+      })();
+    };
+
+    window.addEventListener("notifications:updated", handleUpdated);
+
+    // When user views notifications page, optimistically clear
+    if (location.pathname.startsWith("/dashboard/notifications")) {
+      setUnreadCount(0);
+    }
+
+    return () => {
+      window.removeEventListener("notifications:updated", handleUpdated);
+    };
+  }, [location.pathname]);
 
   const menuItems = [
     {
@@ -49,6 +95,7 @@ export default function DashboardLayout() {
       icon: Bell,
       label: "Notifications",
       path: "/dashboard/notifications",
+      showDot: unreadCount > 0,
     },
     isAdmin && {
       icon: FileText,
@@ -121,7 +168,12 @@ export default function DashboardLayout() {
                 }`}
                 title={!sidebarOpen ? item.label : undefined}
               >
-                <Icon className="w-5 h-5 shrink-0" />
+                <div className="relative">
+                  <Icon className="w-5 h-5 shrink-0" />
+                  {item.showDot && (
+                    <span className="absolute -top-1.5 -right-1.5 block h-2.5 w-2.5 rounded-full bg-red-500" />
+                  )}
+                </div>
                 {sidebarOpen && (
                   <span className="text-sm font-medium">{item.label}</span>
                 )}

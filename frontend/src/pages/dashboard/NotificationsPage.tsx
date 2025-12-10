@@ -56,6 +56,7 @@ export default function NotificationsPage() {
             : n
         )
       );
+      window.dispatchEvent(new CustomEvent("notifications:updated"));
     } catch {
       toast.error("Failed to mark as read");
     } finally {
@@ -74,6 +75,7 @@ export default function NotificationsPage() {
             : { ...n, is_read: true, read_at: new Date().toISOString() }
         )
       );
+      window.dispatchEvent(new CustomEvent("notifications:updated"));
     } catch {
       toast.error("Failed to mark all as read");
     } finally {

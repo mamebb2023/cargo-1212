@@ -113,33 +113,35 @@ export default function SubmitAgainPage() {
                   <p className="font-medium text-gray-900">{doc.document_type}</p>
                   <p className="text-xs text-gray-500">Status: {doc.status}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    accept="image/*,.pdf"
-                    className="hidden"
-                    ref={(el) => {
-                      fileInputsRef.current[doc.id] = el;
-                    }}
-                    onChange={(e) => handleFileChange(doc.id, doc.document_type, e)}
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => triggerFileSelect(doc.id)}
-                    disabled={uploadingId === doc.id}
-                    className="flex items-center gap-2"
-                  >
-                    {uploadingId === doc.id ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Uploading...
-                      </>
-                    ) : (
-                      "Reupload"
-                    )}
-                  </Button>
-                </div>
+                {doc.status !== "approved" && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      className="hidden"
+                      ref={(el) => {
+                        fileInputsRef.current[doc.id] = el;
+                      }}
+                      onChange={(e) => handleFileChange(doc.id, doc.document_type, e)}
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => triggerFileSelect(doc.id)}
+                      disabled={uploadingId === doc.id}
+                      className="flex items-center gap-2"
+                    >
+                      {uploadingId === doc.id ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        "Reupload"
+                      )}
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
