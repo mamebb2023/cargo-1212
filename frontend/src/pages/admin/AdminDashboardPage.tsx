@@ -4,15 +4,35 @@ import { Button } from "@/components/ui/button";
 import { Users, FileText, Package, TrendingUp } from "lucide-react";
 import { adminApi } from "@/lib/api";
 import { toast } from "react-hot-toast";
-import type { User, QueryParams, AdminStats, AdminBid } from "@/types";
+import type {
+  User,
+  QueryParams,
+  AdminStats,
+  AdminBid,
+  VerificationDocument,
+} from "@/types";
+import UserDetailModal from "./UserDetailModal";
+import BidDetailModal from "./BidDetailModal";
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
   const [showMore, setShowMore] = useState(false);
-  const [stats, setStats] = useState<AdminStats>({});
+  const [stats, setStats] = useState<AdminStats>({} as AdminStats);
   const [users, setUsers] = useState<User[]>([]);
   const [bids, setBids] = useState<AdminBid[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedBid, setSelectedBid] = useState<AdminBid | null>(null);
+  const [loadingModal, setLoadingModal] = useState(false);
+  const [userDocuments, setUserDocuments] = useState<VerificationDocument[]>(
+    []
+  );
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleString();
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -61,6 +81,22 @@ export default function AdminDashboardPage() {
   const displayedUsers = showMore ? users : users.slice(0, 5);
   const remainingCount = Math.max(users.length - 5, 0);
 
+  const fetchUserDocuments = async (userId: number) => {
+    try {
+      setLoadingModal(true);
+      const res = await adminApi.getVerificationDocuments();
+      const docs = Array.isArray(res.data) ? res.data : [];
+      const filtered = docs.filter(
+        (doc: VerificationDocument) => doc.user?.id === userId
+      );
+      setUserDocuments(filtered);
+    } catch {
+      setUserDocuments([]);
+    } finally {
+      setLoadingModal(false);
+    }
+  };
+
   const statCards = useMemo(
     () => [
       {
@@ -99,6 +135,20 @@ export default function AdminDashboardPage() {
           Overview of platform statistics and user management
         </p>
       </div>
+
+      <UserDetailModal
+        user={selectedUser}
+        documents={userDocuments}
+        loadingDocuments={loadingModal}
+        onClose={() => setSelectedUser(null)}
+        formatDateTime={formatDateTime}
+      />
+
+      <BidDetailModal
+        bid={selectedBid}
+        onClose={() => setSelectedBid(null)}
+        onOpenBid={(id) => navigate(`/dashboard/bids/${id}`)}
+      />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -139,7 +189,11 @@ export default function AdminDashboardPage() {
               {displayedUsers.map((user) => (
                 <div
                   key={user.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                  onClick={() => {
+                    setSelectedUser(user);
+                    void fetchUserDocuments(user.id);
+                  }}
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
@@ -202,27 +256,31 @@ export default function AdminDashboardPage() {
           </div>
           <div className="p-6">
             <div className="space-y-4">
-              {bids.map((bid) => (
-                <div
-                  key={bid.id}
-                  onClick={() => navigate(`/dashboard/bids/${bid.id}`)}
-                  className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                >
-                  <h3 className="font-medium text-gray-900 mb-1 line-clamp-1">
-                    {bid.title}
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                    {bid.description}
-                  </p>
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <Package className="w-4 h-4" />
-                    <span>
-                      <strong>{bid.offers_count ?? 0}</strong>{" "}
-                      {(bid.offers_count ?? 0) === 1 ? "offer" : "offers"}
-                    </span>
+              {bids.length === 0 ? (
+                <p className="text-sm text-gray-600">No bids.</p>
+              ) : (
+                bids.map((bid) => (
+                  <div
+                    key={bid.id}
+                    onClick={() => setSelectedBid(bid)}
+                    className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                  >
+                    <h3 className="font-medium text-gray-900 mb-1 line-clamp-1">
+                      {bid.title}
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                      {bid.description}
+                    </p>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <Package className="w-4 h-4" />
+                      <span>
+                        <strong>{bid.offers_count ?? 0}</strong>{" "}
+                        {(bid.offers_count ?? 0) === 1 ? "offer" : "offers"}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>

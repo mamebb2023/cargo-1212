@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -31,39 +31,37 @@ export default function DashboardLayout() {
   const isCarrier = user?.role === "carrier";
   const isAdmin = user?.role === "admin";
 
-  useEffect(() => {
-    const loadUnread = async () => {
-      try {
-        const res = await notificationsApi.getUnreadCount();
-        const count =
-          res && typeof res.data?.unread_count === "number"
-            ? res.data.unread_count
-            : 0;
-        setUnreadCount(count);
-      } catch {
-        setUnreadCount(0);
-      }
-    };
-    void loadUnread();
+  const fetchUnread = useCallback(async () => {
+    try {
+      const res = await notificationsApi.getUnreadCount();
+      const count =
+        res && typeof res.data?.unread_count === "number"
+          ? res.data.unread_count
+          : 0;
+      setUnreadCount(count);
+    } catch {
+      setUnreadCount(0);
+    }
   }, []);
 
   useEffect(() => {
-    const handleUpdated = () => {
-      void (async () => {
-        try {
-          const res = await notificationsApi.getUnreadCount();
-          const count =
-            res && typeof res.data?.unread_count === "number"
-              ? res.data.unread_count
-              : 0;
-          setUnreadCount(count);
-        } catch {
-          setUnreadCount(0);
-        }
-      })();
+    void fetchUnread();
+  }, [fetchUnread]);
+
+  useEffect(() => {
+    const handleUpdated = () => void fetchUnread();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void fetchUnread();
+      }
     };
 
     window.addEventListener("notifications:updated", handleUpdated);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    const intervalId = window.setInterval(() => {
+      void fetchUnread();
+    }, 15000);
 
     // When user views notifications page, optimistically clear
     if (location.pathname.startsWith("/dashboard/notifications")) {
@@ -72,16 +70,18 @@ export default function DashboardLayout() {
 
     return () => {
       window.removeEventListener("notifications:updated", handleUpdated);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.clearInterval(intervalId);
     };
-  }, [location.pathname]);
+  }, [location.pathname, fetchUnread]);
 
   const menuItems = [
     {
       icon: LayoutDashboard,
-      label: "Stats",
+      label: isAdmin ? "Stats" : "Dashboard",
       path: "/dashboard/stats",
     },
-    {
+    user?.role !== "shipper" && {
       icon: Package,
       label: "Bids",
       path: "/dashboard/bids",
@@ -123,6 +123,11 @@ export default function DashboardLayout() {
           sidebarOpen ? "w-64" : "w-16"
         }`}
       >
+        {isAdmin && (
+          <div className="px-4 py-2 bg-red-600 text-white text-xs font-semibold">
+            Admin View
+          </div>
+        )}
         {/* Logo Section */}
         <div className="h-16 border-b border-gray-200 flex items-center justify-between px-4 shrink-0">
           <div className="flex items-center gap-2 flex-1">

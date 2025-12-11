@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Filter, Package, Plus } from "lucide-react";
+import { Search, Filter, Package, Plus, Check, X, Eye } from "lucide-react";
 import { bidsApi } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,10 +48,22 @@ export default function BidsPage() {
   };
 
   // Process bids data to add payment status
-  const processedBids = bids.map((bid) => ({
-    ...bid,
-    isPaid: paidBids.includes(bid.id),
-  }));
+  const processedBids = bids
+    .filter(
+      (bid) =>
+        bid.status === "active" ||
+        bid.status === "approved" ||
+        bid.status === undefined
+    )
+    .map((bid) => ({
+      ...bid,
+      isPaid: paidBids.includes(bid.id),
+    }));
+
+  const formatStatusLabel = (status?: string) => {
+    if (!status) return "Active";
+    return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  };
 
   // Extract unique cargo types for filter
   const cargoTypes = Array.from(
@@ -334,7 +346,18 @@ export default function BidsPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                        {bid.title}
+                        <span className="inline-flex items-center gap-2">
+                          {bid.title}
+                          <span
+                            className={`px-2 py-0.5 text-[11px] font-semibold rounded ${
+                              bid.status === "approved"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-blue-100 text-blue-700"
+                            }`}
+                          >
+                            {formatStatusLabel(bid.status)}
+                          </span>
+                        </span>
                       </h3>
                       <p className="text-sm text-gray-600 mb-4 line-clamp-2">
                         {bid.description}

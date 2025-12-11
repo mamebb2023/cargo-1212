@@ -42,6 +42,17 @@ interface DocumentSubmission {
   documents: SubmissionDocument[];
 }
 
+type AdminPayment = {
+  id: number;
+  user?: { full_name?: string; email?: string };
+  payment_method?: string;
+  reference_number?: string;
+  amount?: number | string | null;
+  created_at?: string;
+  payment_proof_url?: string | null;
+  status?: string;
+};
+
 export default function ToReviewPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
@@ -52,9 +63,11 @@ export default function ToReviewPage() {
   } | null>(null);
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [processingDocumentId, setProcessingDocumentId] = useState<number | null>(
-    null
-  );
+  const [processingDocumentId, setProcessingDocumentId] = useState<
+    number | null
+  >(null);
+  const [payments, setPayments] = useState<AdminPayment[]>([]);
+  const [isLoadingPayments, setIsLoadingPayments] = useState(false);
 
   // Helper function to check if file is an image
   const isImageFile = (fileName: string): boolean => {
@@ -75,7 +88,8 @@ export default function ToReviewPage() {
   const getFileUrl = (document: SubmissionDocument): string => {
     const url = document.fileUrl || `/uploads/${document.fileName}`;
     const isAbsolute = url.startsWith("http://") || url.startsWith("https://");
-    const isApiRelative = url.startsWith("/media") || url.startsWith("/uploads");
+    const isApiRelative =
+      url.startsWith("/media") || url.startsWith("/uploads");
     if (isAbsolute) return url;
     if (isApiRelative) return `${API_BASE_URL.replace(/\/api$/, "")}${url}`;
     return url;
@@ -133,68 +147,69 @@ export default function ToReviewPage() {
 
   const mapCarrierSubcategory = useCallback(
     (carrierType?: string | null): DocumentSubmission["carrierSubcategory"] => {
-    if (!carrierType) return undefined;
-    if (carrierType === "truck_owner") return "truckOwner";
-    if (carrierType === "company" || carrierType === "plc") {
-      return carrierType;
-    }
-    return undefined;
-  },
+      if (!carrierType) return undefined;
+      if (carrierType === "truck_owner") return "truckOwner";
+      if (carrierType === "company" || carrierType === "plc") {
+        return carrierType;
+      }
+      return undefined;
+    },
     []
   );
 
   const mapDocumentsToSubmissions = useCallback(
     (documents: ApiVerificationDocument[]): DocumentSubmission[] => {
-    const submissionsMap = new Map<number, DocumentSubmission>();
+      const submissionsMap = new Map<number, DocumentSubmission>();
 
-    documents.forEach((doc) => {
-      const user = doc.user;
-      if (!user) return;
+      documents.forEach((doc) => {
+        const user = doc.user;
+        if (!user) return;
 
-      const carrierSubcategory = mapCarrierSubcategory(user.carrier_type);
-      const formattedDocument: SubmissionDocument = {
-        id: doc.id,
-        label: formatDocumentLabel(doc.document_type),
-        fileName: doc.file_url?.split("/").pop() || `${doc.document_type}.document`,
-        fileUrl: doc.file_url || undefined,
-        status: doc.status as SubmissionDocument["status"],
-      };
+        const carrierSubcategory = mapCarrierSubcategory(user.carrier_type);
+        const formattedDocument: SubmissionDocument = {
+          id: doc.id,
+          label: formatDocumentLabel(doc.document_type),
+          fileName:
+            doc.file_url?.split("/").pop() || `${doc.document_type}.document`,
+          fileUrl: doc.file_url || undefined,
+          status: doc.status as SubmissionDocument["status"],
+        };
 
-      const existingSubmission = submissionsMap.get(user.id);
+        const existingSubmission = submissionsMap.get(user.id);
 
-      if (existingSubmission) {
-        existingSubmission.documents.push(formattedDocument);
-        return;
-      }
+        if (existingSubmission) {
+          existingSubmission.documents.push(formattedDocument);
+          return;
+        }
 
-      submissionsMap.set(user.id, {
-        id: user.id,
-        userId: user.id,
-        userName: user.full_name,
-        userEmail: user.email,
-        userPhone: user.phone,
-        userRole: user.role === "carrier" ? "carrier" : "shipper",
-        carrierSubcategory,
-        companyName: user.company_name,
-        companyNumberOfTrucks:
-          carrierSubcategory === "company" && user.number_of_trucks
-            ? String(user.number_of_trucks)
-            : undefined,
-        plcNumberOfTrucks:
-          carrierSubcategory === "plc" && user.number_of_trucks
-            ? String(user.number_of_trucks)
-            : undefined,
-        truckLibrehNumber: user.truck_libreh_number || undefined,
-        truckTinNumber: user.truck_tin_number || undefined,
-        submittedDate: doc.created_at
-          ? new Date(doc.created_at).toLocaleDateString()
-          : "",
-        documents: [formattedDocument],
+        submissionsMap.set(user.id, {
+          id: user.id,
+          userId: user.id,
+          userName: user.full_name,
+          userEmail: user.email,
+          userPhone: user.phone,
+          userRole: user.role === "carrier" ? "carrier" : "shipper",
+          carrierSubcategory,
+          companyName: user.company_name,
+          companyNumberOfTrucks:
+            carrierSubcategory === "company" && user.number_of_trucks
+              ? String(user.number_of_trucks)
+              : undefined,
+          plcNumberOfTrucks:
+            carrierSubcategory === "plc" && user.number_of_trucks
+              ? String(user.number_of_trucks)
+              : undefined,
+          truckLibrehNumber: user.truck_libreh_number || undefined,
+          truckTinNumber: user.truck_tin_number || undefined,
+          submittedDate: doc.created_at
+            ? new Date(doc.created_at).toLocaleDateString()
+            : "",
+          documents: [formattedDocument],
+        });
       });
-    });
 
-    return Array.from(submissionsMap.values());
-  },
+      return Array.from(submissionsMap.values());
+    },
     [formatDocumentLabel, mapCarrierSubcategory]
   );
 
@@ -204,7 +219,7 @@ export default function ToReviewPage() {
       const response = await adminApi.getVerificationDocuments();
       const docs = Array.isArray(response.data) ? response.data : [];
       setSubmissions(mapDocumentsToSubmissions(docs));
-    } catch (error: any) {
+    } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "Failed to load submissions";
       toast.error(message);
@@ -214,6 +229,19 @@ export default function ToReviewPage() {
     }
   }, [mapDocumentsToSubmissions]);
 
+  const fetchPayments = useCallback(async () => {
+    try {
+      setIsLoadingPayments(true);
+      const res = await adminApi.getPayments({ status: "pending" });
+      const data = Array.isArray(res.data) ? res.data : [];
+      setPayments(data as AdminPayment[]);
+    } catch {
+      setPayments([]);
+    } finally {
+      setIsLoadingPayments(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (loading) return;
     if (!isAdmin) {
@@ -222,7 +250,40 @@ export default function ToReviewPage() {
     }
 
     fetchSubmissions();
-  }, [fetchSubmissions, isAdmin, navigate, loading]);
+    fetchPayments();
+  }, [fetchSubmissions, fetchPayments, isAdmin, navigate, loading]);
+
+  // Auto-refresh on interval and when the tab regains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      void fetchSubmissions();
+      void fetchPayments();
+    };
+
+    const intervalId = window.setInterval(() => {
+      void fetchSubmissions();
+      void fetchPayments();
+    }, 20000);
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      window.clearInterval(intervalId);
+    };
+  }, [fetchSubmissions, fetchPayments]);
+
+  const handlePaymentAction = (
+    paymentId: number,
+    action: "approve" | "reject"
+  ) => {
+    // Backend action not yet wired; surface intent and keep UI responsive
+    toast(
+      action === "approve"
+        ? "Approve payment action not yet available."
+        : "Reject payment action not yet available."
+    );
+  };
 
   const handleDocumentAction = async (
     submissionId: number,
@@ -272,7 +333,7 @@ export default function ToReviewPage() {
           ? "Document approved successfully"
           : "Document rejected"
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "Failed to update document";
       toast.error(message);
@@ -312,6 +373,100 @@ export default function ToReviewPage() {
         </p>
       </div>
 
+      {/* Pending Payments */}
+      <div className="bg-white rounded-lg border border-gray-200">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Pending Payments
+            </h2>
+            <div className="flex items-center gap-2">
+              {isLoadingPayments && <Loading message="" />}
+              <span className="px-3 py-1 text-sm font-medium bg-yellow-100 text-yellow-700 rounded">
+                {payments.length} pending
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="p-6">
+          {isLoadingPayments ? (
+            <div className="text-center py-12">
+              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">Loading payments...</p>
+            </div>
+          ) : payments.length === 0 ? (
+            <div className="text-center py-12">
+              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">No pending payments to review</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {payments.map((pay) => (
+                <div
+                  key={pay.id}
+                  className="border border-gray-200 rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+                >
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-gray-900">
+                      {pay.user?.full_name || "Unknown User"}
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Method: {pay.payment_method?.toUpperCase() || "—"} | Ref:{" "}
+                      {pay.reference_number || "—"}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Amount: {pay.amount || "—"} | Created:{" "}
+                      {pay.created_at
+                        ? new Date(pay.created_at).toLocaleString()
+                        : "—"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                      title="Approve payment"
+                      onClick={() => handlePaymentAction(pay.id, "approve")}
+                    >
+                      <Check className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      title="Reject payment"
+                      onClick={() => handlePaymentAction(pay.id, "reject")}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                    {pay.payment_proof_url ? (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        onClick={() =>
+                          pay.payment_proof_url &&
+                          window.open(pay.payment_proof_url, "_blank")
+                        }
+                        title="View proof"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-gray-500">No proof</span>
+                    )}
+                    <span className="px-2 py-1 text-xs font-semibold rounded bg-yellow-100 text-yellow-700">
+                      PENDING
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Pending Reviews */}
       <div className="bg-white rounded-lg border border-gray-200">
         <div className="p-6 border-b border-gray-200">
@@ -319,9 +474,12 @@ export default function ToReviewPage() {
             <h2 className="text-xl font-semibold text-gray-900">
               Pending Reviews
             </h2>
-            <span className="px-3 py-1 text-sm font-medium bg-yellow-100 text-yellow-700 rounded">
-              {pendingSubmissions.length} pending
-            </span>
+            <div className="flex items-center gap-2">
+              {isLoading && <Loading message="" />}
+              <span className="px-3 py-1 text-sm font-medium bg-yellow-100 text-yellow-700 rounded">
+                {pendingSubmissions.length} pending
+              </span>
+            </div>
           </div>
         </div>
         <div className="p-6">
@@ -341,241 +499,6 @@ export default function ToReviewPage() {
                 <div
                   key={submission.id}
                   className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-center gap-3 mb-4">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        submission.userRole === "carrier"
-                          ? "bg-blue-500"
-                          : "bg-green-500"
-                      }`}
-                    >
-                      {submission.userRole === "carrier" ? (
-                        <Truck className="w-5 h-5 text-white" />
-                      ) : (
-                        <Package className="w-5 h-5 text-white" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="font-semibold text-gray-900">
-                          {submission.userName}
-                        </p>
-                        <span
-                          className={`px-2 py-0.5 text-xs font-medium rounded ${
-                            submission.userRole === "carrier"
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-green-100 text-green-700"
-                          }`}
-                        >
-                          {submission.userRole === "carrier"
-                            ? "Carrier"
-                            : "Shipper"}
-                        </span>
-                        {submission.carrierSubcategory && (
-                          <span className="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700">
-                            {submission.carrierSubcategory === "company"
-                              ? "Company"
-                              : submission.carrierSubcategory === "plc"
-                              ? "PLC"
-                              : "Truck Owner"}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        {submission.userEmail}
-                      </p>
-                      {submission.userPhone && (
-                        <p className="text-sm text-gray-600">
-                          {submission.userPhone}
-                        </p>
-                      )}
-                      <p className="text-xs text-gray-500 mt-1">
-                        Submitted on {submission.submittedDate}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Additional User Details */}
-                  {(submission.companyName ||
-                    submission.companyNumberOfTrucks ||
-                    submission.plcNumberOfTrucks ||
-                    submission.truckLibrehNumber ||
-                    submission.truckTinNumber) && (
-                    <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Building2 className="w-4 h-4 text-gray-600" />
-                        <p className="text-sm font-medium text-gray-700">
-                          Company Details
-                        </p>
-                      </div>
-                      <div className="space-y-1.5 text-sm">
-                        {submission.companyName && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-600 font-medium min-w-[120px]">
-                              Company Name:
-                            </span>
-                            <span className="text-gray-900">
-                              {submission.companyName}
-                            </span>
-                          </div>
-                        )}
-                        {submission.companyNumberOfTrucks && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-600 font-medium min-w-[120px]">
-                              Number of Trucks:
-                            </span>
-                            <span className="text-gray-900">
-                              {submission.companyNumberOfTrucks}
-                            </span>
-                          </div>
-                        )}
-                        {submission.plcNumberOfTrucks && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-600 font-medium min-w-[120px]">
-                              PLC Trucks:
-                            </span>
-                            <span className="text-gray-900">
-                              {submission.plcNumberOfTrucks}
-                            </span>
-                          </div>
-                        )}
-                        {submission.truckLibrehNumber && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-600 font-medium min-w-[120px]">
-                              Libreh Number:
-                            </span>
-                            <span className="text-gray-900">
-                              {submission.truckLibrehNumber}
-                            </span>
-                          </div>
-                        )}
-                        {submission.truckTinNumber && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-600 font-medium min-w-[120px]">
-                              TIN Number:
-                            </span>
-                            <span className="text-gray-900">
-                              {submission.truckTinNumber}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium text-gray-500">
-                      Files and Documents
-                    </p>
-                    <div className="space-y-2">
-                      {submission.documents.map((document) => (
-                        <div
-                          key={document.id}
-                          className={`flex items-center justify-between gap-3 rounded-full border px-4 py-2 ${
-                            documentStatusStyles[document.status]
-                          }`}
-                        >
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {document.label}
-                            </p>
-                            <p className="text-xs text-gray-600">
-                              {document.fileName}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            {isImageFile(document.fileName) ? (
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label="View image"
-                                onClick={() =>
-                                  handleDocumentAction(
-                                    submission.id,
-                                    document.id,
-                                    "view"
-                                  )
-                                }
-                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-all duration-200 rounded-full"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label="Download document"
-                                onClick={() =>
-                                  handleDocumentAction(
-                                    submission.id,
-                                    document.id,
-                                    "download"
-                                  )
-                                }
-                                className="text-gray-600 hover:text-gray-700 hover:bg-gray-50 transition-all duration-200 rounded-full"
-                              >
-                                <Download className="w-4 h-4" />
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label="Approve document"
-                              onClick={() =>
-                                handleDocumentAction(
-                                  submission.id,
-                                  document.id,
-                                  "approve"
-                                )
-                              }
-                              disabled={processingDocumentId === document.id}
-                              className="text-green-600 hover:text-green-700 hover:bg-green-50 transition-all duration-200 rounded-full"
-                            >
-                              <Check className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label="Reject document"
-                              onClick={() =>
-                                handleDocumentAction(
-                                  submission.id,
-                                  document.id,
-                                  "reject"
-                                )
-                              }
-                              disabled={processingDocumentId === document.id}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200 rounded-full"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Recently Reviewed */}
-      {reviewedSubmissions.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">
-              Recently Reviewed
-            </h2>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {reviewedSubmissions.map((submission) => (
-                <div
-                  key={submission.id}
-                  className="border border-gray-200 rounded-lg p-4 bg-gray-50"
                 >
                   <div className="flex items-center gap-3 mb-4">
                     <div
@@ -717,19 +640,13 @@ export default function ToReviewPage() {
                             {document.fileName}
                           </p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           {isImageFile(document.fileName) ? (
                             <Button
                               variant="ghost"
                               size="icon-sm"
                               aria-label="View image"
-                              onClick={() =>
-                                handleDocumentAction(
-                                  submission.id,
-                                  document.id,
-                                  "view"
-                                )
-                              }
+                              onClick={() => handleViewImage(document)}
                               className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-all duration-200 rounded-full"
                             >
                               <Eye className="w-4 h-4" />
@@ -739,27 +656,155 @@ export default function ToReviewPage() {
                               variant="ghost"
                               size="icon-sm"
                               aria-label="Download document"
-                              onClick={() =>
-                                handleDocumentAction(
-                                  submission.id,
-                                  document.id,
-                                  "download"
-                                )
-                              }
+                              onClick={() => handleDownloadFile(document)}
+                              className="text-gray-600 hover:text-gray-700 hover:bg-gray-50 transition-all duration-200 rounded-full"
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Approve document"
+                            onClick={() =>
+                              handleDocumentAction(
+                                submission.id,
+                                document.id,
+                                "approve"
+                              )
+                            }
+                            disabled={processingDocumentId === document.id}
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50 transition-all duration-200 rounded-full"
+                          >
+                            <Check className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Reject document"
+                            onClick={() =>
+                              handleDocumentAction(
+                                submission.id,
+                                document.id,
+                                "reject"
+                              )
+                            }
+                            disabled={processingDocumentId === document.id}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200 rounded-full"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                          <span
+                            className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                              document.status === "approved"
+                                ? "bg-green-100 text-green-700"
+                                : document.status === "pending"
+                                ? "bg-yellow-100 text-yellow-700"
+                                : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {document.status.toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Reviewed Items */}
+      {reviewedSubmissions.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900">
+                Recently Reviewed
+              </h2>
+              <span className="px-3 py-1 text-sm font-medium bg-gray-100 text-gray-700 rounded">
+                {reviewedSubmissions.length} reviewed
+              </span>
+            </div>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {reviewedSubmissions.map((submission) => (
+                <div
+                  key={submission.id}
+                  className="border border-gray-200 rounded-lg p-4 bg-gray-50"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        submission.userRole === "carrier"
+                          ? "bg-blue-200"
+                          : "bg-green-200"
+                      }`}
+                    >
+                      {submission.userRole === "carrier" ? (
+                        <Truck className="w-5 h-5 text-gray-700" />
+                      ) : (
+                        <Package className="w-5 h-5 text-gray-700" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">
+                        {submission.userName}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        {submission.userEmail}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {submission.documents.map((document) => (
+                      <div
+                        key={document.id}
+                        className={`flex items-center justify-between rounded-full border px-4 py-2 ${
+                          documentStatusStyles[document.status]
+                        }`}
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {document.label}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            {document.fileName}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {isImageFile(document.fileName) ? (
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label="View image"
+                              onClick={() => handleViewImage(document)}
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-all duration-200 rounded-full"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label="Download document"
+                              onClick={() => handleDownloadFile(document)}
                               className="text-gray-600 hover:text-gray-700 hover:bg-gray-50 transition-all duration-200 rounded-full"
                             >
                               <Download className="w-4 h-4" />
                             </Button>
                           )}
                           <span
-                            className={`text-xs font-semibold ${
+                            className={`text-xs font-semibold px-2 py-0.5 rounded ${
                               document.status === "approved"
-                                ? "text-green-700"
-                                : "text-red-700"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
                             }`}
                           >
-                            {document.status.charAt(0).toUpperCase() +
-                              document.status.slice(1)}
+                            {document.status.toUpperCase()}
                           </span>
                         </div>
                       </div>

@@ -152,39 +152,45 @@ export default function NotificationsPage() {
                 />
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold text-gray-900">{n.title}</p>
-                  {!n.is_read && (
-                    <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded">
-                      New
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-gray-700 mt-1">{n.message}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {new Date(n.created_at).toLocaleString()}
-                </p>
-                <div className="flex gap-2 mt-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={n.is_read || marking}
-                    onClick={() => handleMarkAsRead(n.id)}
-                  >
-                    Mark as read
-                  </Button>
-                  {(n.related_bid ||
-                    n.related_payment ||
-                    n.related_offer ||
-                    n.related_document) && (
+                <div className="flex flex-col sm:flex-row sm:items-start sm:gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-gray-900">{n.title}</p>
+                      {!n.is_read && (
+                        <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded">
+                          New
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-700 mt-1">{n.message}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(n.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-3 sm:mt-0 sm:ml-auto">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => goToRelated(n)}
+                      className="w-full sm:w-auto"
+                      disabled={n.is_read || marking}
+                      onClick={() => handleMarkAsRead(n.id)}
                     >
-                      View
+                      Mark as read
                     </Button>
-                  )}
+                    {(n.related_bid ||
+                      n.related_payment ||
+                      n.related_offer ||
+                      n.related_document) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full sm:w-auto"
+                        onClick={() => goToRelated(n)}
+                      >
+                        View
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

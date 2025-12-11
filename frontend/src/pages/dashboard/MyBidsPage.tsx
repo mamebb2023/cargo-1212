@@ -46,30 +46,38 @@ export default function MyBidsPage() {
       : date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
   };
 
-  const mapBid = (bid: BackendBidDetail) => ({
-    id: bid.id,
-    title: bid.title,
-    description: bid.description,
-    budget: bid.budget,
-    postedDate: formatDate(bid.created_at),
-    deadline: formatDate(bid.deadline),
-    offers: bid.offers_count ?? bid.offers ?? 0,
-    lowestOffer: bid.lowest_offer ?? null,
-    origin: bid.origin,
-    destination: bid.destination,
-    cargoType: bid.cargo_type ?? bid.cargoType,
-    weight: bid.weight,
-    status: bid.status ?? "active",
-  });
+  const mapBid = (bid: BackendBidDetail) => {
+    const normalizedStatus = (bid.status || "active").toLowerCase();
+    return {
+      id: bid.id,
+      title: bid.title,
+      description: bid.description,
+      budget: bid.budget,
+      postedDate: formatDate(bid.created_at),
+      deadline: formatDate(bid.deadline),
+      offers: bid.offers_count ?? bid.offers ?? 0,
+      lowestOffer: bid.lowest_offer ?? null,
+      origin: bid.origin,
+      destination: bid.destination,
+      cargoType: bid.cargo_type ?? bid.cargoType,
+      weight: bid.weight,
+      status: normalizedStatus,
+    };
+  };
 
   const loadMyBids = useCallback(async () => {
     try {
       setLoading(true);
       const res = await bidsApi.getMyBids();
-      const data = Array.isArray(res.data) ? res.data : [];
+      const data = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray((res as any)?.data?.results)
+        ? (res as any).data.results
+        : [];
       setMyBids(data.map(mapBid));
     } catch (error) {
       console.error("Failed to load my bids", error);
+      // fall back to empty list but keep UI responsive
       setMyBids([]);
     } finally {
       setLoading(false);
@@ -80,12 +88,20 @@ export default function MyBidsPage() {
     void loadMyBids();
   }, [loadMyBids]);
 
+  const formatStatusLabel = (status?: string) => {
+    if (!status) return "—";
+    return status.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  };
+
   // Calculate statistics
   const stats = useMemo(() => {
     const total = myBids.length;
     const active = myBids.filter((bid) => bid.status === "active").length;
     const closed = myBids.filter((bid) => bid.status === "closed").length;
-    return { total, active, closed };
+    const pending = myBids.filter((bid) => bid.status === "pending").length;
+    const rejected = myBids.filter((bid) => bid.status === "rejected").length;
+    const approved = myBids.filter((bid) => bid.status === "approved").length;
+    return { total, active, closed, pending, rejected, approved };
   }, [myBids]);
 
   if (!isShipper && !isAdmin) {
@@ -121,109 +137,111 @@ export default function MyBidsPage() {
               <p className="text-gray-600">Loading your bids…</p>
             </div>
           ) : myBids.length === 0 ? (
-            <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-              <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 mb-4">
-                You haven't posted any bids yet
-              </p>
-              <Button
-                variant="secondary"
-                onClick={() => navigate("/dashboard/bids/create")}
-              >
-                Create Your First Bid
-              </Button>
-            </div>
-          ) : (
-            myBids.map((bid) => (
-              <div
-                key={bid.id}
-                className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {bid.title}
-                      </h3>
+          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+            <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 mb-4">
+              You haven't posted any bids yet
+            </p>
+            <Button
+              variant="secondary"
+              onClick={() => navigate("/dashboard/bids/create")}
+            >
+              Create Your First Bid
+            </Button>
+          </div>
+        ) : (
+          myBids.map((bid) => (
+            <div
+              key={bid.id}
+              className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {bid.title}
+                    </h3>
                       <span
-                        className={`px-2 py-1 text-xs font-medium rounded ${
-                          bid.status === "active"
+                        className={`px-2 py-1 text-xs font-semibold rounded ${
+                          bid.status === "approved"
                             ? "bg-green-100 text-green-700"
+                            : bid.status === "pending"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : bid.status === "rejected"
+                            ? "bg-red-100 text-red-700"
                             : "bg-gray-100 text-gray-700"
                         }`}
                       >
-                        {bid.status
-                          ? bid.status.charAt(0).toUpperCase() + bid.status.slice(1)
-                          : "—"}
+                        {formatStatusLabel(bid.status)}
                       </span>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                  </div>
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">
                       {bid.description || "No description provided."}
-                    </p>
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                        <span>
-                          <strong className="text-gray-900">Route:</strong>{" "}
+                  </p>
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                      <span>
+                        <strong className="text-gray-900">Route:</strong>{" "}
                           {bid.origin || "—"} → {bid.destination || "—"}
-                        </span>
-                        <span>
-                          <strong className="text-gray-900">Cargo:</strong>{" "}
+                      </span>
+                      <span>
+                        <strong className="text-gray-900">Cargo:</strong>{" "}
                           {bid.cargoType || "—"}{" "}
                           {bid.weight ? `(${bid.weight})` : ""}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                        <span>
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                      <span>
                           <strong>Budget:</strong> {bid.budget || "—"}
-                        </span>
-                        {bid.lowestOffer && (
-                          <span>
-                            <strong>Lowest Offer:</strong>{" "}
-                            <span className="text-green-600 font-semibold">
-                              {bid.lowestOffer}
-                            </span>
+                      </span>
+                      {bid.lowestOffer && (
+                        <span>
+                          <strong>Lowest Offer:</strong>{" "}
+                          <span className="text-green-600 font-semibold">
+                            {bid.lowestOffer}
                           </span>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                        <span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                      <span>
                           <strong>Posted:</strong> {bid.postedDate || "—"}
-                        </span>
-                        <span>
+                      </span>
+                      <span>
                           <strong>Deadline:</strong> {bid.deadline || "—"}
-                        </span>
-                        <span>
+                      </span>
+                      <span>
                           <strong>Offers Received:</strong>{" "}
                           {typeof bid.offers === "number" ? bid.offers : "—"}
-                        </span>
-                      </div>
+                      </span>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-2 min-w-[140px]">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => navigate(`/dashboard/bids/${bid.id}`)}
-                      className="flex items-center gap-2"
-                    >
-                      <Eye className="w-4 h-4" />
-                      View Offers
-                    </Button>
+                </div>
+                <div className="flex flex-col gap-2 min-w-[140px]">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => navigate(`/dashboard/bids/${bid.id}`)}
+                    className="flex items-center gap-2"
+                  >
+                    <Eye className="w-4 h-4" />
+                    View Offers
+                  </Button>
                     {isShipper && bid.status === "active" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2 text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </Button>
-                    )}
-                  </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2 text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </Button>
+                  )}
                 </div>
               </div>
-            ))
-          )}
+            </div>
+          ))
+        )}
         </div>
 
         {/* Stats Panel - Right Side */}

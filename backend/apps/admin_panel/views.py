@@ -15,6 +15,7 @@ from .serializers import (
     AdminBidSerializer,
     AdminOfferSerializer,
     AdminRatingSerializer,
+    AdminPaymentSerializer,
 )
 from utils.response import api_response
 
@@ -206,6 +207,44 @@ class AdminRatingListView(generics.ListAPIView):
             api_response(
                 success=True,
                 message="Ratings retrieved successfully",
+                data=serializer.data,
+            )
+        )
+
+
+class AdminPaymentListView(generics.ListAPIView):
+    """Admin view for managing payments"""
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = AdminPaymentSerializer
+
+    def get_queryset(self):
+        if self.request.user.role != "admin":
+            return Payment.objects.none()
+
+        queryset = Payment.objects.all().order_by("-created_at")
+
+        status_filter = self.request.query_params.get("status")
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        if request.user.role != "admin":
+            return Response(
+                api_response(
+                    success=False, message="Access denied. Admin role required."
+                ),
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(
+            api_response(
+                success=True,
+                message="Payments retrieved successfully",
                 data=serializer.data,
             )
         )

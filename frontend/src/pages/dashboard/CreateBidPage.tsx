@@ -8,6 +8,8 @@ import { Select } from "@/components/ui/select";
 import { ArrowLeft, CreditCard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { verificationApi } from "@/lib/api";
+import { paymentsApi } from "@/lib/api";
+import PaymentModal from "@/components/payments/PaymentModal";
 
 export default function CreateBidPage() {
   const navigate = useNavigate();
@@ -16,6 +18,7 @@ export default function CreateBidPage() {
     "loading" | "verified" | "pending" | "rejected"
   >("loading");
   const [showSummary, setShowSummary] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -101,136 +104,172 @@ export default function CreateBidPage() {
     setShowSummary(true);
   };
 
-  const handlePayment = () => {
-    // Handle payment logic here
-    toast.success(
-      "Payment successful! Your bid has been submitted for review."
-    );
-    navigate("/dashboard/bids");
+  const handlePaymentSubmit = async ({
+    paymentMethod,
+    file,
+  }: {
+    paymentMethod: string;
+    file: File;
+  }) => {
+    try {
+      const formDataPayload = new FormData();
+      formDataPayload.append("amount", formData.budget || "0");
+      formDataPayload.append("payment_method", paymentMethod);
+      formDataPayload.append("reference_number", `REF-${Date.now()}`);
+      formDataPayload.append("payment_proof", file);
+
+      await paymentsApi.createPayment(formDataPayload);
+      toast.success("Payment uploaded. Your bid will be reviewed.");
+      setPaymentModalOpen(false);
+      navigate("/dashboard/my-bids");
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to submit payment. Please try again."
+      );
+    }
   };
 
   if (showSummary) {
     return (
-      <div className="max-w-2xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            onClick={() => setShowSummary(false)}
-            className="p-2"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Bid Summary</h1>
-            <p className="text-gray-600 mt-1">
-              Review your bid details before posting
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
-          <div className="space-y-4">
+      <>
+        <div className="max-w-2xl mx-auto space-y-6">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              onClick={() => setShowSummary(false)}
+              className="p-2"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Bid Details
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Title</p>
-                  <p className="text-gray-900">{formData.title}</p>
+              <h1 className="text-3xl font-bold text-gray-900">Bid Summary</h1>
+              <p className="text-gray-600 mt-1">
+                Review your bid details before posting
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Bid Details
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Title</p>
+                    <p className="text-gray-900">{formData.title}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Budget</p>
+                    <p className="text-gray-900">ETB {formData.budget}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">
+                      CPO Amount
+                    </p>
+                    <p className="text-gray-900">ETB {formData.cpoAmount}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-sm font-medium text-gray-500">
+                      Description
+                    </p>
+                    <p className="text-gray-900">{formData.description}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Budget</p>
-                  <p className="text-gray-900">ETB {formData.budget}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">
-                    CPO Amount
-                  </p>
-                  <p className="text-gray-900">ETB {formData.cpoAmount}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-sm font-medium text-gray-500">
-                    Description
-                  </p>
-                  <p className="text-gray-900">{formData.description}</p>
+              </div>
+
+              <div className="border-t border-gray-200 pt-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Shipment Information
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Origin</p>
+                    <p className="text-gray-900">{formData.origin}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">
+                      Destination
+                    </p>
+                    <p className="text-gray-900">{formData.destination}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">
+                      Cargo Type
+                    </p>
+                    <p className="text-gray-900">{formData.cargoType}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Weight</p>
+                    <p className="text-gray-900">{formData.weight}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">
+                      Deadline
+                    </p>
+                    <p className="text-gray-900">{formData.deadline}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Status</p>
+                    <p className="text-gray-900">{formData.status}</p>
+                  </div>
+                  {formData.specialRequirements && (
+                    <div className="col-span-2">
+                      <p className="text-sm font-medium text-gray-500">
+                        Special Requirements
+                      </p>
+                      <p className="text-gray-900">
+                        {formData.specialRequirements}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="border-t border-gray-200 pt-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Shipment Information
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Origin</p>
-                  <p className="text-gray-900">{formData.origin}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">
-                    Destination
-                  </p>
-                  <p className="text-gray-900">{formData.destination}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">
-                    Cargo Type
-                  </p>
-                  <p className="text-gray-900">{formData.cargoType}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Weight</p>
-                  <p className="text-gray-900">{formData.weight}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Deadline</p>
-                  <p className="text-gray-900">{formData.deadline}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Status</p>
-                  <p className="text-gray-900">{formData.status}</p>
-                </div>
-                {formData.specialRequirements && (
-                  <div className="col-span-2">
-                    <p className="text-sm font-medium text-gray-500">
-                      Special Requirements
-                    </p>
-                    <p className="text-gray-900">
-                      {formData.specialRequirements}
-                    </p>
+              <div className="bg-blue-50 rounded-lg p-4 mb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Posting Fee</p>
+                    <p className="text-2xl font-bold text-gray-900">ETB 200</p>
                   </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-200 pt-4">
-            <div className="bg-blue-50 rounded-lg p-4 mb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Posting Fee</p>
-                  <p className="text-2xl font-bold text-gray-900">ETB 200</p>
+                  <CreditCard className="w-8 h-8 text-blue-600" />
                 </div>
-                <CreditCard className="w-8 h-8 text-blue-600" />
+                <p className="text-xs text-gray-500 mt-2">
+                  This fee covers bid posting and verification. Payment is
+                  required to publish your bid.
+                </p>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
-                This fee covers bid posting and verification. Payment is
-                required to publish your bid.
-              </p>
-            </div>
 
-            <Button
-              onClick={handlePayment}
-              variant="secondary"
-              className="w-full"
-              size="lg"
-            >
-              Pay ETB 200 and Post Bid
-            </Button>
+              <Button
+                onClick={() => setPaymentModalOpen(true)}
+                variant="secondary"
+                className="w-full"
+                size="lg"
+              >
+                Pay ETB 200 and Post Bid
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+
+        <PaymentModal
+          open={paymentModalOpen}
+          onClose={() => setPaymentModalOpen(false)}
+          onSubmit={handlePaymentSubmit}
+          onSuccess={() => {
+            setPaymentModalOpen(false);
+            navigate("/dashboard/my-bids");
+          }}
+          amountLabel="ETB 200"
+          title="Pay Posting Fee"
+          description="Upload proof of payment to publish your bid"
+        />
+      </>
     );
   }
 

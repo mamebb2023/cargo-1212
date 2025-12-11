@@ -643,6 +643,19 @@ export default function RegisterPage() {
                       </p>
                     </button>
                   </div>
+
+                  {/* Company Name for carrier types */}
+                  <div className="space-y-2">
+                    <Label htmlFor="carrierCompanyName">Company Name</Label>
+                    <Input
+                      id="carrierCompanyName"
+                      type="text"
+                      placeholder="Enter your company name"
+                      value={carrierData.companyName}
+                      onChange={(e) => updateCarrierData("companyName", e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
               )}
 
@@ -660,13 +673,21 @@ export default function RegisterPage() {
                 <Button
                   onClick={() => {
                     if (selectedRole === "shipper") {
+                      if (!carrierData.companyName.trim()) {
+                        toast.error("Please enter the company name");
+                        return;
+                      }
                       setStep("documents");
                     } else if (selectedRole === "carrier") {
-                      if (carrierSubcategory) {
-                        setStep("documents");
-                      } else {
+                      if (!carrierSubcategory) {
                         toast.error("Please select a carrier type to continue");
+                        return;
                       }
+                      if (!carrierData.companyName.trim()) {
+                        toast.error("Please enter the company name");
+                        return;
+                      }
+                      setStep("documents");
                     } else {
                       toast.error("Please select a role to continue");
                     }

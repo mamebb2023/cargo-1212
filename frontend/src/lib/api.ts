@@ -533,4 +533,9 @@ export const adminApi = {
   getVerificationDocuments: async () => {
     return authRequest<VerificationDocument[]>('/verification/');
   },
+  getPayments: async (params?: QueryParams) => {
+    const queryString = buildQueryString(params);
+    const endpoint = `/admin/payments/${queryString ? `?${queryString}` : ''}`;
+    return authRequest(endpoint);
+  },
 };

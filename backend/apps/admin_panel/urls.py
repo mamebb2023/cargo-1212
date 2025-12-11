@@ -9,5 +9,6 @@ urlpatterns = [
     path("bids/", views.AdminBidListView.as_view(), name="admin-bids"),
     path("offers/", views.AdminOfferListView.as_view(), name="admin-offers"),
     path("ratings/", views.AdminRatingListView.as_view(), name="admin-ratings"),
+    path("payments/", views.AdminPaymentListView.as_view(), name="admin-payments"),
     path("pending-reviews/", views.pending_reviews_view, name="pending-reviews"),
 ]

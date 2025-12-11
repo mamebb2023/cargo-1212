@@ -17,6 +17,9 @@ export default function SubmitAgainPage() {
   >([]);
   const [uploadingId, setUploadingId] = useState<number | null>(null);
   const [hasNewUpload, setHasNewUpload] = useState(false);
+  const [pendingUploads, setPendingUploads] = useState<
+    Record<number, { file: File; name: string }>
+  >({});
   const fileInputsRef = useRef<Record<number, HTMLInputElement | null>>({});
 
   const loadDocuments = useCallback(async () => {
@@ -50,33 +53,49 @@ export default function SubmitAgainPage() {
     if (input) input.click();
   };
 
-  const handleFileChange = async (
+  const handleFileChange = (
     docId: number,
     documentType: string,
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    setPendingUploads((prev) => ({
+      ...prev,
+      [docId]: { file, name: file.name },
+    }));
+    setHasNewUpload(true);
+  };
 
-    const formData = new FormData();
-    formData.append("document_type", documentType);
-    formData.append("file", file);
+  const handleUploadAll = async () => {
+    const entries = Object.entries(pendingUploads);
+    if (entries.length === 0) return;
 
     try {
-      setUploadingId(docId);
-      await verificationApi.uploadDocument(formData);
-      toast.success("Document uploaded. Awaiting review.");
+      setUploadingId(-1); // indicate bulk upload
+      for (const [docIdStr, { file }] of entries) {
+        const docId = Number(docIdStr);
+        const doc = documents.find((d) => d.id === docId);
+        if (!doc) continue;
+
+        const formData = new FormData();
+        formData.append("document_type", doc.document_type);
+        formData.append("file", file);
+
+        await verificationApi.uploadDocument(formData);
+      }
+      toast.success("Documents uploaded. Awaiting review.");
+      setPendingUploads({});
+      setHasNewUpload(false);
       await loadDocuments();
-      setHasNewUpload(true);
     } catch (error: any) {
-      toast.error(
-        error?.message || "Failed to upload document. Please try again."
-      );
+      toast.error(error?.message || "Failed to upload documents. Please try again.");
     } finally {
       setUploadingId(null);
-      if (fileInputsRef.current[docId]) {
-        fileInputsRef.current[docId]!.value = "";
-      }
+      // reset inputs
+      Object.values(fileInputsRef.current).forEach((input) => {
+        if (input) input.value = "";
+      });
     }
   };
 
@@ -111,7 +130,18 @@ export default function SubmitAgainPage() {
               >
                 <div>
                   <p className="font-medium text-gray-900">{doc.document_type}</p>
-                  <p className="text-xs text-gray-500">Status: {doc.status}</p>
+                  <p
+                    className={`text-xs font-semibold ${
+                      doc.status === "approved"
+                        ? "text-green-500"
+                        : "text-gray-500"
+                    }`}
+                  >
+                    Status:{" "}
+                    {doc.status === "approved"
+                      ? doc.status.toUpperCase()
+                      : doc.status}
+                  </p>
                 </div>
                 {doc.status !== "approved" && (
                   <div className="flex items-center gap-2">
@@ -124,6 +154,29 @@ export default function SubmitAgainPage() {
                       }}
                       onChange={(e) => handleFileChange(doc.id, doc.document_type, e)}
                     />
+                    {pendingUploads[doc.id] && (
+                      <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 text-xs text-gray-700">
+                        <FileText className="w-4 h-4 text-gray-500" />
+                        <span className="truncate max-w-[120px]">
+                          {pendingUploads[doc.id].name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPendingUploads((prev) => {
+                              const next = { ...prev };
+                              delete next[doc.id];
+                              return next;
+                            })
+                          }
+                          className="text-red-500 hover:text-red-600"
+                        >
+                          <Loader2 className="w-4 h-4 rotate-90 opacity-0" />
+                          {/* visually hidden icon placeholder to keep layout */}
+                          ×
+                        </button>
+                      </div>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"
@@ -155,7 +208,7 @@ export default function SubmitAgainPage() {
           <Button
             variant="secondary"
             disabled={!hasNewUpload}
-            onClick={() => toast.success("Documents queued. They'll be reviewed shortly.")}
+            onClick={handleUploadAll}
           >
             Upload
           </Button>

@@ -2,6 +2,7 @@ import os
 import uuid
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 
 def verification_document_upload_path(instance, filename):
@@ -90,7 +91,7 @@ class VerificationDocument(models.Model):
         """Approve the document"""
         self.status = "approved"
         self.reviewed_by = admin_user
-        self.reviewed_at = models.functions.Now()
+        self.reviewed_at = timezone.now()
         self.save()
 
         # Check if all required documents are approved
@@ -101,7 +102,7 @@ class VerificationDocument(models.Model):
         self.status = "rejected"
         self.rejection_reason = reason
         self.reviewed_by = admin_user
-        self.reviewed_at = models.functions.Now()
+        self.reviewed_at = timezone.now()
         self.save()
 
     def _check_user_verification_status(self):

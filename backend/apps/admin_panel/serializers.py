@@ -84,3 +84,27 @@ class AdminRatingSerializer(serializers.ModelSerializer):
             'id', 'user', 'shipper_name', 'carrier', 'carrier_name',
             'bid', 'bid_title', 'score', 'comment', 'created_at'
         ]
+
+
+class AdminPaymentSerializer(serializers.ModelSerializer):
+    """Serializer for admin payment management"""
+
+    user_name = serializers.CharField(source='user.full_name', read_only=True)
+    payment_proof_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Payment
+        fields = [
+            'id', 'user', 'user_name', 'amount', 'payment_method',
+            'reference_number', 'status', 'payment_proof_url',
+            'created_at', 'updated_at', 'bid',
+        ]
+
+    def get_payment_proof_url(self, obj):
+        if obj.payment_proof:
+            request = self.context.get('request')
+            url = obj.payment_proof.url
+            if request:
+                return request.build_absolute_uri(url)
+            return url
+        return None
