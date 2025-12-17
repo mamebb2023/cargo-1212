@@ -375,6 +375,12 @@ export const offersApi = {
       method: 'POST',
     });
   },
+
+  completeDelivery: async (offerId: number) => {
+    return authRequest(`/offers/${offerId}/complete-delivery/`, {
+      method: 'POST',
+    });
+  },
 };
 
 // Payments API

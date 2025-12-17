@@ -54,8 +54,14 @@ class Bid(models.Model):
         help_text="Optional files attached to the bid",
     )
 
-    # Selected offer ID (when bid is closed)
-    selected_offer_id = models.PositiveIntegerField(null=True, blank=True)
+    # Selected offer (when bid is closed)
+    selected_offer = models.ForeignKey(
+        'offers.Offer',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='selected_for_bids'
+    )
 
     class Meta:
         ordering = ["-created_at"]
@@ -86,7 +92,7 @@ class Bid(models.Model):
         """Close the bid and optionally select an offer"""
         self.status = "closed"
         if selected_offer:
-            self.selected_offer_id = selected_offer.id
+            self.selected_offer = selected_offer
             selected_offer.is_selected = True
             selected_offer.save()
         self.save()

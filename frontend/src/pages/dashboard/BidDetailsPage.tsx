@@ -12,7 +12,7 @@ import {
   Truck,
   ArrowRight,
 } from "lucide-react";
-import { bidsApi, paymentsApi } from "@/lib/api";
+import { bidsApi, paymentsApi, verificationApi } from "@/lib/api";
 import PaymentModal from "@/components/payments/PaymentModal";
 import { useAuthContext } from "@/context/AuthContext";
 import RatingModal from "@/components/RatingModal";
@@ -32,6 +32,9 @@ export default function BidDetailsPage() {
     name: string;
     role: "shipper" | "carrier";
   } | null>(null);
+  const [verificationStatus, setVerificationStatus] = useState<
+    "loading" | "verified" | "pending" | "rejected"
+  >("loading");
 
   // Check if current user is the bid owner
   const isBidOwner = user && bid && user.email === bid.shipperEmail;
@@ -69,11 +72,50 @@ export default function BidDetailsPage() {
     }
   }, [id]);
 
+  // Load verification status for carriers
+  useEffect(() => {
+    const loadVerification = async () => {
+      if (!user || user.role !== "carrier") {
+        setVerificationStatus("verified"); // Not a carrier, so no verification needed
+        return;
+      }
+
+      try {
+        const res = await verificationApi.getDocuments();
+        const docs = Array.isArray(res.data) ? res.data : [];
+        const hasRejected = docs.some((d) => d.status === "rejected");
+        const hasPending = docs.some((d) => d.status === "pending");
+        const hasApproved = docs.some((d) => d.status === "approved");
+
+        if (user.is_verified) {
+          setVerificationStatus("verified");
+        } else if (hasRejected) {
+          setVerificationStatus("rejected");
+        } else if (hasPending) {
+          setVerificationStatus("pending");
+        } else if (
+          docs.length > 0 &&
+          hasApproved &&
+          !hasPending &&
+          !hasRejected
+        ) {
+          // All documents are approved but user.is_verified might not be updated yet
+          setVerificationStatus("verified");
+        } else {
+          setVerificationStatus("pending");
+        }
+      } catch {
+        setVerificationStatus(user?.is_verified ? "verified" : "pending");
+      }
+    };
+    void loadVerification();
+  }, [user]);
+
   const fetchBidDetails = async (bidId: number) => {
     try {
       setLoading(true);
       const response = await bidsApi.getBidDetails(bidId);
-      const data = response.data;
+      const data = response.data as LimitedBidDetail | BackendBidDetail;
 
       // Check if this is limited data (requires payment)
       if ("requires_payment" in data && data.requires_payment) {
@@ -121,17 +163,32 @@ export default function BidDetailsPage() {
           shipperPhone: fullData.user?.phone,
           shipperEmail: fullData.user?.email,
           bidFilesUrl: fullData.bid_files_url,
+          status: fullData.status,
+          selected_offer: fullData.selected_offer,
+          user: fullData.user,
         };
         setBid(mapped);
         setRequiresPayment(false);
       }
     } catch (error) {
-      if (error instanceof Error) {
-        toast.error(error.message || "Failed to load bid details");
-        setBid(null);
-      } else {
-        toast.error("Failed to load bid details");
+      // Handle 403/404 errors for unauthorized access
+      if (error && typeof error === "object" && "response" in error) {
+        const axiosError = error as { response?: { status?: number } };
+        if (axiosError.response?.status === 403) {
+          toast.error("You don't have permission to view this bid");
+          setBid(null);
+          return;
+        } else if (axiosError.response?.status === 404) {
+          toast.error("Bid not found");
+          setBid(null);
+          return;
+        }
       }
+
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to load bid details";
+      toast.error(errorMessage);
+      setBid(null);
     } finally {
       setLoading(false);
     }
@@ -150,6 +207,16 @@ export default function BidDetailsPage() {
   }) => {
     if (!bid) {
       toast.error("Bid not loaded yet.");
+      return;
+    }
+
+    // Check if user is verified before allowing payment
+    if (user?.role === "carrier" && verificationStatus !== "verified") {
+      toast.error(
+        verificationStatus === "rejected"
+          ? "Your documents were rejected. Please resubmit before making payments."
+          : "Your documents are pending review. Please wait for approval before making payments."
+      );
       return;
     }
 
@@ -200,6 +267,62 @@ export default function BidDetailsPage() {
     );
   }
 
+  // Prevent unverified carriers from accessing bid details
+  if (user?.role === "carrier" && verificationStatus !== "verified") {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/dashboard/bids")}
+            className="p-2"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Access Denied</h1>
+          </div>
+        </div>
+
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-6">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Document Verification Required
+            </h3>
+            <p className="text-gray-700 mb-4">
+              You are not allowed to access bid details before your documents
+              are reviewed and approved.
+            </p>
+            <p className="text-sm text-gray-600 mb-6">
+              Current status:{" "}
+              {verificationStatus === "loading"
+                ? "Checking..."
+                : verificationStatus === "rejected"
+                ? "Rejected - please resubmit your documents."
+                : "Pending review."}
+            </p>
+            <Button
+              variant="secondary"
+              onClick={() => navigate("/dashboard/profile")}
+              className="mr-4"
+            >
+              Go to Profile
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/dashboard/bids")}
+            >
+              Back to Bids
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
@@ -219,6 +342,24 @@ export default function BidDetailsPage() {
           </p>
         </div>
       </div>
+
+      {/* Verification Warning for Carriers */}
+      {user?.role === "carrier" && verificationStatus !== "verified" && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4">
+          <p className="font-semibold">
+            You are not allowed to access bid details before your documents are
+            reviewed and approved.
+          </p>
+          <p className="text-sm mt-1">
+            Current status:{" "}
+            {verificationStatus === "loading"
+              ? "Checking..."
+              : verificationStatus === "rejected"
+              ? "Rejected - please resubmit your documents."
+              : "Pending review."}
+          </p>
+        </div>
+      )}
 
       {/* Basic Information */}
       <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
@@ -281,11 +422,23 @@ export default function BidDetailsPage() {
             <div className="pt-4 border-t border-gray-200">
               <div className="flex items-center justify-between text-sm">
                 <span className="flex flex-col md:flex-row text-gray-600">
-                  <strong>Posted:</strong> {formatDate(bid.postedDate)}
+                  <strong>Posted:</strong> {formatDate(bid.postedDate || "")}
                 </span>
-                <span className="flex flex-col md:flex-row text-gray-600">
-                  <strong>Offers Received:</strong> {bid.offers}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="flex flex-col md:flex-row text-gray-600">
+                    <strong>Offers Received:</strong> {bid.offers}
+                  </span>
+                  {user?.role === "shipper" && bid.offers > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/dashboard/offers/${bid.id}`)}
+                      className="text-xs"
+                    >
+                      View Offers
+                    </Button>
+                  )}
+                </div>
                 {bid.lowestOffer && (
                   <span className="flex flex-col md:flex-row text-green-600 font-semibold">
                     <strong>Lowest Offer:</strong> {bid.lowestOffer}
@@ -346,6 +499,10 @@ export default function BidDetailsPage() {
                   onClick={handlePayment}
                   variant="secondary"
                   className="w-full flex items-center justify-center gap-2"
+                  disabled={
+                    user?.role === "carrier" &&
+                    verificationStatus !== "verified"
+                  }
                 >
                   <CreditCard className="w-4 h-4" />
                   Pay ETB 200 and View Full Details
@@ -441,10 +598,10 @@ export default function BidDetailsPage() {
                     onClick={() => {
                       // For shipper rating carrier
                       setRatingTarget({
-                        id: bid.selected_offer.carrier.id,
+                        id: bid.selected_offer?.carrier?.id || 0,
                         name:
-                          bid.selected_offer.carrier.company_name ||
-                          bid.selected_offer.carrier.full_name ||
+                          bid.selected_offer?.carrier?.company_name ||
+                          bid.selected_offer?.carrier?.full_name ||
                           "Carrier",
                         role: "carrier",
                       });
@@ -460,10 +617,10 @@ export default function BidDetailsPage() {
                     onClick={() => {
                       // For carrier rating shipper
                       setRatingTarget({
-                        id: bid.user.id,
+                        id: bid.user?.id || 0,
                         name:
-                          bid.user.company_name ||
-                          bid.user.full_name ||
+                          bid.user?.company_name ||
+                          bid.user?.full_name ||
                           bid.shipperName ||
                           "Shipper",
                         role: "shipper",
@@ -494,6 +651,10 @@ export default function BidDetailsPage() {
                   className="flex-1"
                   onClick={() =>
                     navigate(`/dashboard/bids/${bid.id}/submit-offer`)
+                  }
+                  disabled={
+                    user?.role === "carrier" &&
+                    verificationStatus !== "verified"
                   }
                 >
                   Submit Offer

@@ -128,4 +128,3 @@ export function RatingBar({ stars, count, total }: RatingBarProps) {
     </div>
   );
 }
-

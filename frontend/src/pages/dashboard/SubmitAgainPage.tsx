@@ -30,12 +30,17 @@ export default function SubmitAgainPage() {
       setDocuments(docs);
       const hasRejected = docs.some((d) => d.status === "rejected");
       const hasPending = docs.some((d) => d.status === "pending");
+      const hasApproved = docs.some((d) => d.status === "approved");
+
       if (user.is_verified) {
         setStatus("verified");
       } else if (hasRejected) {
         setStatus("rejected");
-      } else if (hasPending || docs.length === 0) {
+      } else if (hasPending) {
         setStatus("pending");
+      } else if (docs.length > 0 && hasApproved && !hasPending && !hasRejected) {
+        // All documents are approved but user.is_verified might not be updated yet
+        setStatus("verified");
       } else {
         setStatus("pending");
       }

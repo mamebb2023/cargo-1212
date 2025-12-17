@@ -47,12 +47,17 @@ export default function CreateBidPage() {
         const docs = Array.isArray(res.data) ? res.data : [];
         const hasRejected = docs.some((d) => d.status === "rejected");
         const hasPending = docs.some((d) => d.status === "pending");
+        const hasApproved = docs.some((d) => d.status === "approved");
+
         if (user.is_verified) {
           setVerificationStatus("verified");
         } else if (hasRejected) {
           setVerificationStatus("rejected");
-        } else if (hasPending || docs.length === 0) {
+        } else if (hasPending) {
           setVerificationStatus("pending");
+        } else if (docs.length > 0 && hasApproved && !hasPending && !hasRejected) {
+          // All documents are approved but user.is_verified might not be updated yet
+          setVerificationStatus("verified");
         } else {
           setVerificationStatus("pending");
         }
@@ -315,9 +320,9 @@ export default function CreateBidPage() {
       </div>
 
       {verificationStatus !== "verified" && (
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-4">
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4">
           <p className="font-semibold">
-            You must have approved documents before posting a bid.
+            You are not allowed to offer a bid before your documents are reviewed and approved.
           </p>
           <p className="text-sm mt-1">
             Current status:{" "}

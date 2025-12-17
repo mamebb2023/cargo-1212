@@ -177,6 +177,47 @@ def accept_offer_view(request, offer_id):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+def complete_delivery_view(request, offer_id):
+    """Mark delivery as completed (shipper only)"""
+
+    try:
+        offer = Offer.objects.get(id=offer_id)
+    except Offer.DoesNotExist:
+        return Response(api_response(
+            success=False,
+            message="Offer not found"
+        ), status=status.HTTP_404_NOT_FOUND)
+
+    # Check permissions - only shipper who owns the bid can mark delivery as completed
+    if request.user != offer.bid.user:
+        return Response(api_response(
+            success=False,
+            message="You can only mark delivery as completed for your own bids"
+        ), status=status.HTTP_403_FORBIDDEN)
+
+    if offer.status != 'accepted':
+        return Response(api_response(
+            success=False,
+            message="Can only mark delivery as completed for accepted offers"
+        ), status=status.HTTP_400_BAD_REQUEST)
+
+    if offer.delivery_completed:
+        return Response(api_response(
+            success=False,
+            message="Delivery is already marked as completed"
+        ), status=status.HTTP_400_BAD_REQUEST)
+
+    # Mark delivery as completed
+    offer.mark_delivery_completed()
+
+    return Response(api_response(
+        success=True,
+        message="Delivery marked as completed successfully"
+    ))
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def reject_offer_view(request, offer_id):
     """Reject an offer (shipper only)"""
 

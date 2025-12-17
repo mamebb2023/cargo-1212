@@ -59,12 +59,22 @@ export default function SubmitOfferPage() {
         const docs = Array.isArray(res.data) ? res.data : [];
         const hasRejected = docs.some((d) => d.status === "rejected");
         const hasPending = docs.some((d) => d.status === "pending");
+        const hasApproved = docs.some((d) => d.status === "approved");
+
         if (user.is_verified) {
           setVerificationStatus("verified");
         } else if (hasRejected) {
           setVerificationStatus("rejected");
-        } else if (hasPending || docs.length === 0) {
+        } else if (hasPending) {
           setVerificationStatus("pending");
+        } else if (
+          docs.length > 0 &&
+          hasApproved &&
+          !hasPending &&
+          !hasRejected
+        ) {
+          // All documents are approved but user.is_verified might not be updated yet
+          setVerificationStatus("verified");
         } else {
           setVerificationStatus("pending");
         }
@@ -183,9 +193,10 @@ export default function SubmitOfferPage() {
       </div>
 
       {verificationStatus !== "verified" && (
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-4">
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4">
           <p className="font-semibold">
-            You must have approved documents before submitting an offer.
+            You are not allowed to submit an offer before your documents are
+            reviewed and approved.
           </p>
           <p className="text-sm mt-1">
             Current status:{" "}
@@ -245,88 +256,94 @@ export default function SubmitOfferPage() {
         className="bg-white rounded-lg border border-gray-200 p-6 space-y-6"
       >
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="offerAmount" className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4" />
-              Offer Amount (ETB) <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="offerAmount"
-              type="number"
-              placeholder="e.g., 22500"
-              value={formData.offerAmount}
-              onChange={(e) => handleChange("offerAmount", e.target.value)}
-              required
-              min="0"
-              step="0.01"
-            />
-            <p className="text-xs text-gray-500">
-              Enter your competitive offer amount. Lower offers are more likely
-              to win the bid.
-            </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="offerAmount" className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4" />
+                Offer Amount (ETB) <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="offerAmount"
+                type="number"
+                placeholder="e.g., 22500"
+                value={formData.offerAmount}
+                onChange={(e) => handleChange("offerAmount", e.target.value)}
+                required
+                min="0"
+                step="0.01"
+              />
+              <p className="text-xs text-gray-500">
+                Enter your competitive offer amount. Lower offers are more
+                likely to win the bid.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label
+                htmlFor="estimatedDeliveryTime"
+                className="flex items-center gap-2"
+              >
+                <Calendar className="w-4 h-4" />
+                Estimated Delivery Date <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="estimatedDeliveryTime"
+                type="date"
+                value={formData.estimatedDeliveryTime}
+                onChange={(e) =>
+                  handleChange("estimatedDeliveryTime", e.target.value)
+                }
+                required
+                min={new Date().toISOString().split("T")[0]} // Prevent past dates
+              />
+              <p className="text-xs text-gray-500">
+                Select the date when you expect to deliver the cargo
+              </p>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label
-              htmlFor="estimatedDeliveryTime"
-              className="flex items-center gap-2"
-            >
-              <Calendar className="w-4 h-4" />
-              Estimated Delivery Date <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="estimatedDeliveryTime"
-              type="date"
-              value={formData.estimatedDeliveryTime}
-              onChange={(e) =>
-                handleChange("estimatedDeliveryTime", e.target.value)
-              }
-              required
-              min={new Date().toISOString().split("T")[0]} // Prevent past dates
-            />
-            <p className="text-xs text-gray-500">
-              Select the date when you expect to deliver the cargo
-            </p>
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="vehicleType" className="flex items-center gap-2">
+                <Truck className="w-4 h-4" />
+                Vehicle Type <span className="text-red-500">*</span>
+              </Label>
+              <select
+                id="vehicleType"
+                value={formData.vehicleType}
+                onChange={(e) => handleChange("vehicleType", e.target.value)}
+                className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                required
+              >
+                <option value="">Select vehicle type</option>
+                <option value="flatbed">Flatbed Truck</option>
+                <option value="box-truck">Box Truck</option>
+                <option value="refrigerated">Refrigerated Truck</option>
+                <option value="container">Container Truck</option>
+                <option value="tanker">Tanker Truck</option>
+                <option value="other">Other</option>
+              </select>
+              <p className="text-xs text-gray-500">
+                Select the type of vehicle you will use for this transport
+              </p>
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="vehicleType" className="flex items-center gap-2">
-              <Truck className="w-4 h-4" />
-              Vehicle Type <span className="text-red-500">*</span>
-            </Label>
-            <select
-              id="vehicleType"
-              value={formData.vehicleType}
-              onChange={(e) => handleChange("vehicleType", e.target.value)}
-              className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              required
-            >
-              <option value="">Select vehicle type</option>
-              <option value="flatbed">Flatbed Truck</option>
-              <option value="box-truck">Box Truck</option>
-              <option value="refrigerated">Refrigerated Truck</option>
-              <option value="container">Container Truck</option>
-              <option value="tanker">Tanker Truck</option>
-              <option value="other">Other</option>
-            </select>
-            <p className="text-xs text-gray-500">
-              Select the type of vehicle you will use for this transport
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="cpoServiceNumber">
-              CPO Service Number <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="cpoServiceNumber"
-              type="number"
-              placeholder="e.g., 12345"
-              value={formData.cpoServiceNumber}
-              onChange={(e) => handleChange("cpoServiceNumber", e.target.value)}
-              required
-              min="0"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="cpoServiceNumber">
+                CPO Service Number <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="cpoServiceNumber"
+                type="number"
+                placeholder="e.g., 12345"
+                value={formData.cpoServiceNumber}
+                onChange={(e) =>
+                  handleChange("cpoServiceNumber", e.target.value)
+                }
+                required
+                min="0"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

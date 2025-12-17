@@ -77,7 +77,9 @@ def create_bid_review_view(request):
 
     if not bid_id or not ratee_id or not score:
         return Response(
-            api_response(success=False, message="Bid ID, ratee ID, and rating score are required"),
+            api_response(
+                success=False, message="Bid ID, ratee ID, and rating score are required"
+            ),
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -86,7 +88,7 @@ def create_bid_review_view(request):
         from django.contrib.auth import get_user_model
 
         User = get_user_model()
-        bid = Bid.objects.get(id=bid_id)
+        bid = Bid.objects.select_related("selected_offer__user").get(id=bid_id)
         ratee = User.objects.get(id=ratee_id)
     except Bid.DoesNotExist:
         return Response(
@@ -100,22 +102,34 @@ def create_bid_review_view(request):
         )
 
     # Check if bid is completed
+    print(f"DEBUG: Bid status is {bid.status}, selected_offer: {bid.selected_offer}")
     if bid.status != "completed":
         return Response(
-            api_response(success=False, message="You can only rate completed bids"),
+            api_response(
+                success=False,
+                message=f"You can only rate completed bids (current status: {bid.status})",
+            ),
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     # Check if the rater and ratee were involved in this bid
-    if request.user not in [bid.user, bid.selected_offer.user if bid.selected_offer else None]:
+    if request.user not in [
+        bid.user,
+        bid.selected_offer.user if bid.selected_offer else None,
+    ]:
         return Response(
-            api_response(success=False, message="You are not authorized to rate this bid"),
+            api_response(
+                success=False, message="You are not authorized to rate this bid"
+            ),
             status=status.HTTP_403_FORBIDDEN,
         )
 
     if ratee not in [bid.user, bid.selected_offer.user if bid.selected_offer else None]:
         return Response(
-            api_response(success=False, message="The user you are trying to rate was not involved in this bid"),
+            api_response(
+                success=False,
+                message="The user you are trying to rate was not involved in this bid",
+            ),
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -126,11 +140,11 @@ def create_bid_review_view(request):
         )
 
     # Check if rating already exists
-    if Rating.objects.filter(
-        rater=request.user, ratee=ratee, bid=bid
-    ).exists():
+    if Rating.objects.filter(rater=request.user, ratee=ratee, bid=bid).exists():
         return Response(
-            api_response(success=False, message="You have already rated this user for this bid"),
+            api_response(
+                success=False, message="You have already rated this user for this bid"
+            ),
             status=status.HTTP_400_BAD_REQUEST,
         )
 

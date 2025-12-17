@@ -33,7 +33,7 @@ class BidListCreateView(generics.ListCreateAPIView):
             # Shippers see their own bids
             queryset = queryset.filter(user=user)
         elif user.role == "carrier":
-            # Carriers see active bids (but need to pay to see full details)
+            # Carriers see active bids (but need approved payment for full details)
             queryset = queryset.filter(status="active")
         elif user.role == "admin":
             # Admins see all bids
@@ -99,21 +99,30 @@ class BidDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = BidDetailSerializer
 
     def get_queryset(self):
-        # Allow all authenticated users to view any bid
-        return Bid.objects.all()
+        user = self.request.user
+        queryset = Bid.objects.all()
+
+        # Filter based on user role
+        if user.role == "shipper":
+            # Shippers can only see their own bids
+            queryset = queryset.filter(user=user)
+        elif user.role == "carrier":
+            # Carriers can see active bids (but need approved payment for full details)
+            queryset = queryset.filter(status="active")
+        elif user.role == "admin":
+            # Admins can see all bids
+            pass
+
+        return queryset
 
     def retrieve(self, request, *args, **kwargs):
         bid = self.get_object()
 
         # Check if user can see full bid details
-        # Allow if: user owns the bid OR user has made payments (pending or approved) for this specific bid
+        # Allow if: user owns the bid OR user has approved payments for this specific bid
         user_has_paid_for_this_bid = (
             hasattr(request.user, "payments")
-            and request.user.payments.filter(
-                bid=bid
-            ).filter(
-                models.Q(status="approved") | models.Q(status="pending")
-            ).exists()
+            and request.user.payments.filter(bid=bid, status="approved").exists()
         )
         user_owns_bid = request.user.id == bid.user.id
 

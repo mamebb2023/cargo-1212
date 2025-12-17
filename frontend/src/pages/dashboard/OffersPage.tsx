@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { offersApi } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
+import RatingModal from "@/components/RatingModal";
 
 interface Offer {
   id: number;
@@ -26,11 +27,21 @@ interface Offer {
     cargo_type: string;
     weight: string;
     budget: string;
+    user?: {
+      id: number;
+      company_name?: string;
+      full_name?: string;
+      email?: string;
+    };
   };
   user: {
     id: number;
     full_name: string;
     email: string;
+    company_name?: string;
+    carrier_type?: string;
+    average_rating?: number;
+    total_ratings?: number;
   };
   price: string;
   delivery_time: string;
@@ -38,6 +49,7 @@ interface Offer {
   cpo_service_number: string;
   notes?: string;
   status: "pending" | "active" | "accepted" | "rejected";
+  delivery_completed?: boolean;
   created_at: string;
 }
 
@@ -48,6 +60,12 @@ export default function OffersPage() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingAction, setProcessingAction] = useState<number | null>(null);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingTarget, setRatingTarget] = useState<{
+    offerId: number;
+    carrierId: number;
+    carrierName: string;
+  } | null>(null);
 
   // Format date to readable format
   const formatDate = (dateString: string) => {
@@ -84,26 +102,30 @@ export default function OffersPage() {
 
       if (bidId) {
         // Show offers for this specific bid (for shippers)
-        filteredOffers =
-          response.data?.filter((offer: { bid: unknown }) => {
-            // bid can be an object or just an ID
-            const offerBidId =
-              typeof offer.bid === "object" && offer.bid && "id" in offer.bid
-                ? (offer.bid as { id: number }).id
-                : (offer.bid as number);
-            return offerBidId === parseInt(bidId);
-          }) || [];
+        filteredOffers = Array.isArray(response.data)
+          ? response.data.filter((offer: { bid: unknown }) => {
+              // bid can be an object or just an ID
+              const offerBidId =
+                typeof offer.bid === "object" && offer.bid && "id" in offer.bid
+                  ? (offer.bid as { id: number }).id
+                  : (offer.bid as number);
+              return offerBidId === parseInt(bidId);
+            })
+          : [];
       } else {
         // Show offers made by the current user (for carriers)
-        filteredOffers =
-          response.data?.filter((offer: { user: unknown }) => {
-            // user can be an object or just an ID
-            const offerUserId =
-              typeof offer.user === "object" && offer.user && "id" in offer.user
-                ? (offer.user as { id: number }).id
-                : (offer.user as number);
-            return offerUserId === user?.id;
-          }) || [];
+        filteredOffers = Array.isArray(response.data)
+          ? response.data.filter((offer: { user: unknown }) => {
+              // user can be an object or just an ID
+              const offerUserId =
+                typeof offer.user === "object" &&
+                offer.user &&
+                "id" in offer.user
+                  ? (offer.user as { id: number }).id
+                  : (offer.user as number);
+              return offerUserId === user?.id;
+            })
+          : [];
       }
 
       setOffers(filteredOffers);
@@ -140,6 +162,32 @@ export default function OffersPage() {
     }
   };
 
+  const handleCompleteDelivery = async (offerId: number) => {
+    if (!confirm("Are you sure the delivery has been completed?")) return;
+
+    try {
+      setProcessingAction(offerId);
+      await offersApi.completeDelivery(offerId);
+      toast.success("Delivery marked as completed");
+      fetchOffers(); // Refresh the offers list
+    } catch (error) {
+      const errorMessage =
+        (error as Error)?.message || "Failed to mark delivery as completed";
+      toast.error(errorMessage);
+    } finally {
+      setProcessingAction(null);
+    }
+  };
+
+  const handleRateCarrier = (offer: Offer) => {
+    setRatingTarget({
+      offerId: offer.id,
+      carrierId: offer.user.id,
+      carrierName: offer.user.company_name || offer.user.full_name,
+    });
+    setShowRatingModal(true);
+  };
+
   useEffect(() => {
     fetchOffers();
   }, [fetchOffers]);
@@ -168,6 +216,31 @@ export default function OffersPage() {
       default:
         return "bg-gray-100 text-gray-700 border-gray-200";
     }
+  };
+
+  const renderStars = (rating: number) => {
+    const fullStars = Math.floor(rating / 2); // Convert 10-point scale to 5-star scale
+    const hasHalfStar = (rating / 2) % 1 >= 0.5;
+    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+
+    return (
+      <div className="flex items-center gap-1">
+        {/* Full stars */}
+        {Array.from({ length: fullStars }, (_, i) => (
+          <span key={`full-${i}`} className="text-yellow-400">
+            ★
+          </span>
+        ))}
+        {/* Half star */}
+        {hasHalfStar && <span className="text-yellow-400">☆</span>}
+        {/* Empty stars */}
+        {Array.from({ length: emptyStars }, (_, i) => (
+          <span key={`empty-${i}`} className="text-gray-300">
+            ☆
+          </span>
+        ))}
+      </div>
+    );
   };
 
   if (loading) {
@@ -224,99 +297,39 @@ export default function OffersPage() {
               key={offer.id}
               className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  {/* Header with bid info and status */}
-                  <div className="flex items-center gap-3 mb-4">
-                    {getStatusIcon(offer.status)}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {offer.bid.title || `Bid #${offer.bid.id}`}
-                        </h3>
-                        <span
-                          className={`px-2 py-1 text-xs font-semibold rounded border ${getStatusColor(
-                            offer.status
-                          )}`}
-                        >
-                          {offer.status.charAt(0).toUpperCase() +
-                            offer.status.slice(1)}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {offer.bid.origin} → {offer.bid.destination} •{" "}
-                        {offer.bid.cargo_type}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Offer details */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              {/* Header with bid info and status */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  {getStatusIcon(offer.status)}
+                  <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-green-600" />
-                      <div>
-                        <p className="text-xs text-gray-500">Offer Amount</p>
-                        <p className="font-semibold text-gray-900">
-                          ETB {formatCurrency(offer.price)}
-                        </p>
-                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {offer.bid.title || `Bid #${offer.bid.id}`}
+                      </h3>
+                      <span
+                        className={`px-2 py-1 text-xs font-semibold rounded border ${getStatusColor(
+                          offer.status
+                        )}`}
+                      >
+                        {offer.status.charAt(0).toUpperCase() +
+                          offer.status.slice(1)}
+                      </span>
                     </div>
-
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-blue-600" />
-                      <div>
-                        <p className="text-xs text-gray-500">Delivery Date</p>
-                        <p className="font-semibold text-gray-900">
-                          {formatDate(offer.delivery_time)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Truck className="w-4 h-4 text-purple-600" />
-                      <div>
-                        <p className="text-xs text-gray-500">Vehicle Type</p>
-                        <p className="font-semibold text-gray-900">
-                          {offer.vehicle_type}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Package className="w-4 h-4 text-orange-600" />
-                      <div>
-                        <p className="text-xs text-gray-500">CPO Number</p>
-                        <p className="font-semibold text-gray-900">
-                          {offer.cpo_service_number}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Notes */}
-                  {offer.notes && (
-                    <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                      <p className="text-sm font-medium text-gray-700 mb-1">
-                        Notes:
-                      </p>
-                      <p className="text-sm text-gray-600">{offer.notes}</p>
-                    </div>
-                  )}
-
-                  {/* Timestamp */}
-                  <div className="text-xs text-gray-500">
-                    Submitted on {formatDate(offer.created_at)}
+                    <p className="text-sm text-gray-600 mt-1">
+                      {offer.bid.origin} → {offer.bid.destination} •{" "}
+                      {offer.bid.cargo_type}
+                    </p>
                   </div>
                 </div>
 
-                {/* Action buttons for shippers, status display for carriers */}
+                {/* Action buttons */}
                 {bidId ? (
-                  <div className="flex gap-2 ml-6">
+                  <div className="flex gap-2">
                     {offer.status === "active" && (
                       <>
                         <Button
                           size="sm"
-                          variant="default"
+                          variant="secondary"
                           onClick={() => handleAcceptOffer(offer.id)}
                           disabled={processingAction === offer.id}
                         >
@@ -338,9 +351,11 @@ export default function OffersPage() {
                       </>
                     )}
                     {offer.status === "accepted" && (
-                      <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
-                        <CheckCircle className="w-4 h-4" />
-                        Accepted
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
+                          <CheckCircle className="w-4 h-4" />
+                          Accepted
+                        </div>
                       </div>
                     )}
                     {offer.status === "rejected" && (
@@ -351,29 +366,182 @@ export default function OffersPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="ml-6">
-                    {offer.status === "accepted" && (
-                      <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
-                        <CheckCircle className="w-4 h-4" />
-                        Accepted
+                  <div className="flex items-center gap-2">
+                    {getStatusIcon(offer.status)}
+                    <span
+                      className={`text-sm font-medium ${getStatusColor(
+                        offer.status
+                      )}`}
+                    >
+                      {offer.status.charAt(0).toUpperCase() +
+                        offer.status.slice(1)}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                {/* Offer details */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-green-600" />
+                    <div>
+                      <p className="text-xs text-gray-500">Offer Amount</p>
+                      <p className="font-semibold text-gray-900">
+                        ETB {formatCurrency(offer.price)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-blue-600" />
+                    <div>
+                      <p className="text-xs text-gray-500">Delivery Date</p>
+                      <p className="font-semibold text-gray-900">
+                        {formatDate(offer.delivery_time)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-purple-600" />
+                    <div>
+                      <p className="text-xs text-gray-500">Vehicle Type</p>
+                      <p className="font-semibold text-gray-900">
+                        {offer.vehicle_type}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-orange-600" />
+                    <div>
+                      <p className="text-xs text-gray-500">CPO Number</p>
+                      <p className="font-semibold text-gray-900">
+                        {offer.cpo_service_number}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Carrier Information */}
+                <div className="bg-blue-50 rounded-lg p-4 mb-4">
+                  <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                    Carrier Information
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <p className="text-xs text-gray-600">Name</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {offer.user.company_name || offer.user.full_name}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600">Email</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {offer.user.email}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600">Rating</p>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          {renderStars(Number(offer.user.average_rating) || 0)}
+                          <span className="text-sm font-medium text-gray-900">
+                            {(Number(offer.user.average_rating) || 0).toFixed(
+                              1
+                            )}
+                            /10
+                          </span>
+                        </div>
+                        {/* {offer.user.total_ratings && (
+                          <span className="text-xs text-gray-600">
+                            {offer.user.total_ratings} reviews
+                          </span>
+                        )} */}
                       </div>
-                    )}
-                    {offer.status === "rejected" && (
-                      <div className="flex items-center gap-2 text-red-600 text-sm font-medium">
-                        <XCircle className="w-4 h-4" />
-                        Rejected
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rating Section for Carriers */}
+                {!bidId &&
+                  offer.status === "accepted" &&
+                  offer.delivery_completed && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                      <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                        Rate Your Experience
+                      </h4>
+                      <p className="text-sm text-gray-600 mb-3">
+                        How was your experience working with this shipper?
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          // For carriers rating shippers
+                          setRatingTarget({
+                            offerId: offer.id,
+                            carrierId: offer.bid.user?.id || 0,
+                            carrierName:
+                              offer.bid.user?.company_name ||
+                              offer.bid.user?.full_name ||
+                              "Shipper",
+                          });
+                          setShowRatingModal(true);
+                        }}
+                        className="text-sm"
+                      >
+                        Rate Shipper
+                      </Button>
+                    </div>
+                  )}
+
+                {/* Notes */}
+                {offer.notes && (
+                  <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                    <p className="text-sm font-medium text-gray-700 mb-1">
+                      Notes:
+                    </p>
+                    <p className="text-sm text-gray-600">{offer.notes}</p>
+                  </div>
+                )}
+
+                {/* Timestamp */}
+                <div className="text-xs text-gray-500">
+                  Submitted on {formatDate(offer.created_at)}
+                </div>
+
+                {/* Delivery Completion Section */}
+                {offer.status === "accepted" && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    {!offer.delivery_completed ? (
+                      <div className="flex justify-center">
+                        <Button
+                          variant="secondary"
+                          onClick={() => handleCompleteDelivery(offer.id)}
+                          disabled={processingAction === offer.id}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          {processingAction === offer.id
+                            ? "Processing..."
+                            : "Mark Delivery Completed"}
+                        </Button>
                       </div>
-                    )}
-                    {offer.status === "active" && (
-                      <div className="flex items-center gap-2 text-blue-600 text-sm font-medium">
-                        <Clock className="w-4 h-4" />
-                        Pending Review
-                      </div>
-                    )}
-                    {offer.status === "pending" && (
-                      <div className="flex items-center gap-2 text-gray-600 text-sm font-medium">
-                        <Clock className="w-4 h-4" />
-                        Pending
+                    ) : (
+                      <div className="text-center space-y-2">
+                        <div className="flex items-center justify-center gap-2 text-green-600 text-sm font-medium">
+                          <CheckCircle className="w-4 h-4" />
+                          Delivery Completed
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRateCarrier(offer)}
+                          className="text-sm"
+                        >
+                          Rate Carrier
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -382,6 +550,33 @@ export default function OffersPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Rating Modal */}
+      {ratingTarget && (
+        <RatingModal
+          isOpen={showRatingModal}
+          onClose={() => {
+            setShowRatingModal(false);
+            setRatingTarget(null);
+          }}
+          bidId={
+            offers.find((offer) => offer.id === ratingTarget.offerId)?.bid.id ||
+            0
+          }
+          bidTitle={
+            offers.find((offer) => offer.id === ratingTarget.offerId)?.bid
+              .title || ""
+          }
+          rateeId={ratingTarget.carrierId}
+          rateeName={ratingTarget.carrierName}
+          rateeRole={bidId ? "carrier" : "shipper"} // If bidId exists, shipper is rating carrier; otherwise carrier is rating shipper
+          onSuccess={() => {
+            toast.success("Rating submitted successfully!");
+            setShowRatingModal(false);
+            setRatingTarget(null);
+          }}
+        />
       )}
     </div>
   );

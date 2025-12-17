@@ -188,7 +188,7 @@ export default function DashboardLayout() {
         </nav>
 
         {/* Profile Dropdown */}
-        <div className="p-4 border-t border-gray-200 shrink-0">
+        <div className="p-2 border-t border-gray-200 shrink-0">
           <div className="relative">
             <button
               onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
@@ -203,7 +203,22 @@ export default function DashboardLayout() {
               {sidebarOpen && (
                 <div className="flex flex-col items-start">
                   <span className="text-sm font-medium">
-                    {user?.full_name || "User"}
+                    {user?.full_name || "User"}{" "}
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium mt-1 ${
+                        user?.role === "carrier"
+                          ? "bg-blue-100 text-blue-700"
+                          : user?.role === "shipper"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {user?.role === "carrier"
+                        ? "Carrier"
+                        : user?.role === "shipper"
+                        ? "Shipper"
+                        : "Admin"}
+                    </span>
                   </span>
                   <span className="text-xs text-gray-500">
                     {user?.email || ""}

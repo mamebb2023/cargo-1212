@@ -118,13 +118,22 @@ export default function ToReviewPage() {
   // Handle downloading file
   const handleDownloadFile = (doc: SubmissionDocument) => {
     const fileUrl = getFileUrl(doc);
-    const link = window.document.createElement("a");
-    link.href = fileUrl;
-    link.download = doc.fileName;
-    window.document.body.appendChild(link);
-    link.click();
-    window.document.body.removeChild(link);
-    toast.success("Download started");
+    const isPdf = doc.fileName.toLowerCase().endsWith(".pdf");
+
+    if (isPdf) {
+      // Open PDF in new tab
+      window.open(fileUrl, "_blank");
+      toast.success("PDF opened in new tab");
+    } else {
+      // Download other files
+      const link = window.document.createElement("a");
+      link.href = fileUrl;
+      link.download = doc.fileName;
+      window.document.body.appendChild(link);
+      link.click();
+      window.document.body.removeChild(link);
+      toast.success("Download started");
+    }
   };
 
   const [submissions, setSubmissions] = useState<DocumentSubmission[]>([]);
@@ -245,7 +254,8 @@ export default function ToReviewPage() {
   const fetchPayments = useCallback(async () => {
     try {
       setIsLoadingPayments(true);
-      const res = await adminApi.getPayments({ status: "pending" });
+      // Fetch all payments instead of just pending ones to include reviewed payments
+      const res = await adminApi.getPayments();
       const data = Array.isArray(res.data) ? res.data : [];
       setPayments(data as AdminPayment[]);
     } catch {
@@ -430,10 +440,16 @@ export default function ToReviewPage() {
     [submissions]
   );
 
+  const pendingPayments = useMemo(
+    () => payments.filter((pay) => pay.status === "pending"),
+    [payments]
+  );
+
   // Calculate total pending items (documents + payments + bids)
   const totalPendingItems = useMemo(
-    () => pendingSubmissions.length + payments.length + pendingBids.length,
-    [pendingSubmissions.length, payments.length, pendingBids.length]
+    () =>
+      pendingSubmissions.length + pendingPayments.length + pendingBids.length,
+    [pendingSubmissions.length, pendingPayments.length, pendingBids.length]
   );
 
   const reviewedSubmissions = useMemo(
@@ -510,13 +526,13 @@ export default function ToReviewPage() {
           ) : (
             <div className="space-y-6">
               {/* Pending Payments Section */}
-              {payments.length > 0 && (
+              {pendingPayments.length > 0 && (
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 mb-4">
                     Payments
                   </h3>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {payments.map((pay) => (
+                    {pendingPayments.map((pay) => (
                       <div
                         key={pay.id}
                         className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"

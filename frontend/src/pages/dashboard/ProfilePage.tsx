@@ -67,12 +67,17 @@ export default function ProfilePage() {
         const docs = Array.isArray(res.data) ? res.data : [];
         const hasRejected = docs.some((d) => d.status === "rejected");
         const hasPending = docs.some((d) => d.status === "pending");
+        const hasApproved = docs.some((d) => d.status === "approved");
+
         if (user.is_verified) {
           setVerificationStatus("verified");
         } else if (hasRejected) {
           setVerificationStatus("rejected");
-        } else if (hasPending || docs.length === 0) {
+        } else if (hasPending) {
           setVerificationStatus("pending");
+        } else if (docs.length > 0 && hasApproved && !hasPending && !hasRejected) {
+          // All documents are approved but user.is_verified might not be updated yet
+          setVerificationStatus("verified");
         } else {
           setVerificationStatus("pending");
         }

@@ -41,6 +41,7 @@ export interface BidDetail {
   weight: string;
   deadline: string;
   budget: string;
+  status?: string;
   postedDate?: string;
   offers?: number;
   lowestOffer?: string | null;
@@ -51,6 +52,21 @@ export interface BidDetail {
   shipperPhone?: string;
   shipperEmail?: string;
   bidFilesUrl?: string | null;
+  selected_offer?: {
+    carrier: {
+      id: number;
+      company_name?: string;
+      full_name?: string;
+      email?: string;
+    };
+  };
+  user?: {
+    id?: number;
+    company_name?: string;
+    full_name?: string;
+    email?: string;
+    phone?: string;
+  };
 }
 
 export interface BackendBidDetail {
@@ -72,6 +88,14 @@ export interface BackendBidDetail {
   special_requirements?: string;
   bid_files_url?: string | null;
   cargoType?: string;
+  selected_offer?: {
+    carrier: {
+      id: number;
+      company_name?: string;
+      full_name?: string;
+      email?: string;
+    };
+  };
   user?: {
     company_name?: string;
     full_name?: string;
@@ -151,10 +175,14 @@ export interface DashboardStats {
 export interface DashboardBidSummary {
   id: number;
   title: string;
+  description: string;
   status: string;
   budget: string;
   origin: string;
   destination: string;
+  weight: string;
+  cargo_type: string;
+  deadline: string;
   created_at: string;
   offers_count: number;
   lowest_offer?: string | null;

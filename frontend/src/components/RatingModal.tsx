@@ -44,19 +44,22 @@ export default function RatingModal({
     try {
       const token = localStorage.getItem("access_token");
 
-      const response = await fetch("http://localhost:8000/api/ratings/reviews/create/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          bid: bidId,
-          ratee: rateeId,
-          rating: rating,
-          comment: comment,
-        }),
-      });
+      const response = await fetch(
+        "http://localhost:8000/api/ratings/reviews/create/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            bid: bidId,
+            ratee: rateeId,
+            rating: rating,
+            comment: comment,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const error = await response.json();
@@ -68,8 +71,12 @@ export default function RatingModal({
       onClose();
       setRating(0);
       setComment("");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to submit rating");
+    } catch (error) {
+      let message = "Failed to submit rating";
+      if (error instanceof Error) {
+        message = error.message || message;
+      }
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -78,8 +85,10 @@ export default function RatingModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-xl font-semibold text-gray-900">Rate {rateeRole === "carrier" ? "Carrier" : "Shipper"}</h2>
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Rate {rateeRole === "carrier" ? "Carrier" : "Shipper"}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition"
@@ -95,7 +104,9 @@ export default function RatingModal({
           </div>
 
           <div>
-            <p className="text-sm text-gray-600 mb-1">{rateeRole === "carrier" ? "Carrier" : "Shipper"}:</p>
+            <p className="text-sm text-gray-600 mb-1">
+              {rateeRole === "carrier" ? "Carrier" : "Shipper"}:
+            </p>
             <p className="font-medium text-gray-900">{rateeName}</p>
           </div>
 
@@ -103,22 +114,22 @@ export default function RatingModal({
             <label className="block text-sm font-medium text-gray-700 mb-3">
               Your Rating <span className="text-red-500">*</span>
             </label>
-            <div className="flex justify-center">
+            <div className="flex gap-2 text-center">
               <StarRating
                 rating={rating}
                 onRatingChange={setRating}
                 size="lg"
               />
+              {rating > 0 && (
+                <p className="text-center mt-2 text-sm text-gray-600">
+                  {rating === 1 && "Poor"}
+                  {rating === 2 && "Fair"}
+                  {rating === 3 && "Good"}
+                  {rating === 4 && "Very Good"}
+                  {rating === 5 && "Excellent"}
+                </p>
+              )}
             </div>
-            {rating > 0 && (
-              <p className="text-center mt-2 text-sm text-gray-600">
-                {rating === 1 && "Poor"}
-                {rating === 2 && "Fair"}
-                {rating === 3 && "Good"}
-                {rating === 4 && "Very Good"}
-                {rating === 5 && "Excellent"}
-              </p>
-            )}
           </div>
 
           <div>
@@ -162,4 +173,3 @@ export default function RatingModal({
     </div>
   );
 }
-

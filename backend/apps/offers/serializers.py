@@ -7,6 +7,8 @@ from apps.bids.models import Bid
 class OfferBidSerializer(serializers.ModelSerializer):
     """Serializer for bid information in offers"""
 
+    user = UserSerializer(read_only=True)
+
     class Meta:
         model = Bid
         fields = [
@@ -18,6 +20,7 @@ class OfferBidSerializer(serializers.ModelSerializer):
             "cargo_type",
             "weight",
             "budget",
+            "user",
         ]
 
 
@@ -40,6 +43,7 @@ class OfferSerializer(serializers.ModelSerializer):
             "notes",
             "status",
             "is_selected",
+            "delivery_completed",
             "created_at",
             "updated_at",
         ]
@@ -103,6 +107,7 @@ class OfferListSerializer(serializers.ModelSerializer):
             "notes",
             "status",
             "is_selected",
+            "delivery_completed",
             "created_at",
         ]
 
@@ -126,6 +131,7 @@ class OfferDetailSerializer(serializers.ModelSerializer):
             "notes",
             "status",
             "is_selected",
+            "delivery_completed",
             "created_at",
             "updated_at",
         ]

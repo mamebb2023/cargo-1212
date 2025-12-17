@@ -65,6 +65,12 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
             if user_has_paid_for_bid:
                 raise serializers.ValidationError("User already has payment access for this bid")
 
+            # Check if carrier user is document-verified before allowing bid access payment
+            if request.user.role == 'carrier' and not request.user.is_verified:
+                raise serializers.ValidationError(
+                    "Document verification required. You must be verified before accessing bid details."
+                )
+
         return data
 
     def create(self, validated_data):

@@ -6,6 +6,20 @@ import { Search, Filter, Package, Plus } from "lucide-react";
 import { bidsApi, paymentsApi } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/hooks/useAuth";
+import type { DashboardBidSummary } from "@/types";
+
+type ProcessedBid = DashboardBidSummary & {
+  isPaid: boolean;
+  cargoType: string; // This is cargo_type from API
+  description: string;
+  weight: string;
+  offers: number; // This is offers_count from API
+  deadline: string;
+  budget: string;
+  lowestOffer?: string | null;
+  origin: string;
+  destination: string;
+};
 
 export default function BidsPage() {
   const navigate = useNavigate();
@@ -17,7 +31,7 @@ export default function BidsPage() {
   const [offersFilter, setOffersFilter] = useState<string>("all");
   const [cargoTypeFilter, setCargoTypeFilter] = useState<string>("all");
 
-  const [bids, setBids] = useState<unknown[]>([]);
+  const [bids, setBids] = useState<DashboardBidSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [paidBids, setPaidBids] = useState<Set<number>>(new Set());
 
@@ -30,31 +44,52 @@ export default function BidsPage() {
     }
   }, [user, navigate]);
 
-  const checkPaidBids = useCallback(async (bidsData: unknown[]) => {
+  const checkPaidBids = useCallback(async () => {
     if (!user?.id) return;
 
     try {
       // Get user's payments to see which bids they've paid for
       const paymentsResponse = await paymentsApi.getPayments();
-      const userPayments = paymentsResponse.data || [];
+      const userPayments = Array.isArray(paymentsResponse.data)
+        ? (paymentsResponse.data as Array<{
+            bid?: number | { id: number };
+            status: string;
+          }>)
+        : [];
 
-      // Create a set of bid IDs that the user has paid for (pending or approved)
+      // Create a set of bid IDs that the user has approved payments for
       const paidBidIds = new Set<number>();
-      userPayments.forEach((payment: any) => {
-        if (payment.bid && (payment.status === 'approved' || payment.status === 'pending')) {
+      userPayments.forEach((payment) => {
+        if (
+          payment.bid &&
+          payment.status === "approved"
+        ) {
           // Handle both object and number bid references
-          const bidId = typeof payment.bid === 'object' && payment.bid?.id
-            ? payment.bid.id
-            : payment.bid;
-          console.log('Found paid bid:', bidId, 'for payment:', payment.id, 'status:', payment.status);
+          let bidId: number;
+          if (typeof payment.bid === "object" && payment.bid?.id) {
+            bidId = payment.bid.id;
+          } else if (typeof payment.bid === "number") {
+            bidId = payment.bid;
+          } else if (typeof payment.bid === "string") {
+            bidId = parseInt(payment.bid, 10);
+          } else {
+            console.warn("Invalid bid reference in payment:", payment);
+            return;
+          }
+
+          // console.log('Found paid bid:', bidId, 'for payment:', payment.id, 'status:', payment.status);
           paidBidIds.add(bidId);
         }
       });
 
-      console.log('Total paid bids found:', paidBidIds.size, Array.from(paidBidIds));
+      console.log(
+        "Total paid bids found:",
+        paidBidIds.size,
+        Array.from(paidBidIds)
+      );
       setPaidBids(paidBidIds);
     } catch (error) {
-      console.error('Failed to check payment status:', error);
+      console.error("Failed to check payment status:", error);
       setPaidBids(new Set());
     }
   }, [user?.id]);
@@ -68,8 +103,7 @@ export default function BidsPage() {
       setBids(bidsData);
 
       // Check payment status for these bids
-      await checkPaidBids(bidsData);
-
+      await checkPaidBids();
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to load bids";
@@ -78,7 +112,7 @@ export default function BidsPage() {
     } finally {
       setLoading(false);
     }
-  }, [user, checkPaidBids]);
+  }, [checkPaidBids]);
 
   // Fetch bids on component mount and when user changes
   useEffect(() => {
@@ -110,10 +144,30 @@ export default function BidsPage() {
         bid.status === "approved" ||
         bid.status === undefined
     )
-    .map((bid: any) => ({
+    .map((bid: DashboardBidSummary) => ({
       ...bid,
       isPaid: paidBids.has(bid.id),
+      offers: bid.offers_count, // Map offers_count to offers
+      cargoType: bid.cargo_type, // Map cargo_type to cargoType
+      lowestOffer: bid.lowest_offer, // Map lowest_offer to lowestOffer
     }));
+
+  // Security check: Ensure we never show full details for unpaid bids
+  const secureBids = processedBids.map((bid: ProcessedBid) => ({
+    ...bid,
+    // Override sensitive fields for unpaid bids to prevent accidental exposure
+    ...(bid.isPaid
+      ? {}
+      : {
+          budget: undefined,
+          deadline: undefined,
+          lowestOffer: undefined,
+          origin: bid.origin ? bid.origin.substring(0, 1) + "***" : undefined,
+          destination: bid.destination
+            ? bid.destination.substring(0, 1) + "***"
+            : undefined,
+        }),
+  }));
 
   const formatStatusLabel = (status?: string) => {
     if (!status) return "Active";
@@ -122,10 +176,10 @@ export default function BidsPage() {
 
   // Extract unique cargo types for filter
   const cargoTypes = Array.from(
-    new Set(processedBids.map((bid) => bid.cargoType))
+    new Set(secureBids.map((bid) => bid.cargoType))
   );
 
-  const filteredBids = processedBids.filter((bid) => {
+  const filteredBids = secureBids.filter((bid) => {
     const matchesSearch =
       bid.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       bid.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -439,7 +493,8 @@ export default function BidsPage() {
                               <strong>Deadline:</strong> {bid.deadline}
                             </span>
                             <span>
-                              <strong>Offers:</strong> {bid.offers === 0 ? "No offers" : bid.offers}
+                              <strong>Offers:</strong>{" "}
+                              {bid.offers === 0 ? "No offers" : bid.offers}
                             </span>
                           </div>
                           {bid.lowestOffer && (
