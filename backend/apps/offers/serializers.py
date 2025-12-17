@@ -1,14 +1,31 @@
 from rest_framework import serializers
 from .models import Offer
 from apps.users.serializers import UserSerializer
-from apps.bids.serializers import BidListSerializer
+from apps.bids.models import Bid
+
+
+class OfferBidSerializer(serializers.ModelSerializer):
+    """Serializer for bid information in offers"""
+
+    class Meta:
+        model = Bid
+        fields = [
+            "id",
+            "title",
+            "description",
+            "origin",
+            "destination",
+            "cargo_type",
+            "weight",
+            "budget",
+        ]
 
 
 class OfferSerializer(serializers.ModelSerializer):
     """Serializer for Offer model"""
 
     user = UserSerializer(read_only=True)
-    bid = BidListSerializer(read_only=True)
+    bid = OfferBidSerializer(read_only=True)
 
     class Meta:
         model = Offer
@@ -71,18 +88,19 @@ class OfferListSerializer(serializers.ModelSerializer):
     """Serializer for offer list view"""
 
     user = UserSerializer(read_only=True)
-    bid_title = serializers.CharField(source="bid.title", read_only=True)
+    bid = OfferBidSerializer(read_only=True)
 
     class Meta:
         model = Offer
         fields = [
             "id",
             "bid",
-            "bid_title",
             "user",
             "price",
             "delivery_time",
             "vehicle_type",
+            "cpo_service_number",
+            "notes",
             "status",
             "is_selected",
             "created_at",
@@ -93,7 +111,7 @@ class OfferDetailSerializer(serializers.ModelSerializer):
     """Detailed serializer for offer"""
 
     user = UserSerializer(read_only=True)
-    bid = BidListSerializer(read_only=True)
+    bid = OfferBidSerializer(read_only=True)
 
     class Meta:
         model = Offer

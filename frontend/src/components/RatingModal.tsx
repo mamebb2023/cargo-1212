@@ -9,8 +9,9 @@ interface RatingModalProps {
   onClose: () => void;
   bidId: number;
   bidTitle: string;
-  recipientName: string;
-  recipientRole: "shipper" | "carrier";
+  rateeId: number;
+  rateeName: string;
+  rateeRole: "shipper" | "carrier";
   onSuccess?: () => void;
 }
 
@@ -19,8 +20,9 @@ export default function RatingModal({
   onClose,
   bidId,
   bidTitle,
-  recipientName,
-  recipientRole,
+  rateeId,
+  rateeName,
+  rateeRole,
   onSuccess,
 }: RatingModalProps) {
   const [rating, setRating] = useState(0);
@@ -40,10 +42,9 @@ export default function RatingModal({
     setIsSubmitting(true);
 
     try {
-      // TODO: Replace with actual API call
       const token = localStorage.getItem("access_token");
-      
-      const response = await fetch("http://localhost:8000/api/bids/reviews/create/", {
+
+      const response = await fetch("http://localhost:8000/api/ratings/reviews/create/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -51,6 +52,7 @@ export default function RatingModal({
         },
         body: JSON.stringify({
           bid: bidId,
+          ratee: rateeId,
           rating: rating,
           comment: comment,
         }),
@@ -58,7 +60,7 @@ export default function RatingModal({
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to submit rating");
+        throw new Error(error.message || "Failed to submit rating");
       }
 
       toast.success("Rating submitted successfully!");
@@ -77,7 +79,7 @@ export default function RatingModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-xl font-semibold text-gray-900">Rate {recipientRole === "carrier" ? "Carrier" : "Shipper"}</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Rate {rateeRole === "carrier" ? "Carrier" : "Shipper"}</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition"
@@ -93,8 +95,8 @@ export default function RatingModal({
           </div>
 
           <div>
-            <p className="text-sm text-gray-600 mb-1">{recipientRole === "carrier" ? "Carrier" : "Shipper"}:</p>
-            <p className="font-medium text-gray-900">{recipientName}</p>
+            <p className="text-sm text-gray-600 mb-1">{rateeRole === "carrier" ? "Carrier" : "Shipper"}:</p>
+            <p className="font-medium text-gray-900">{rateeName}</p>
           </div>
 
           <div>

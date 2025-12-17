@@ -14,13 +14,28 @@ class BidSerializer(serializers.ModelSerializer):
     class Meta:
         model = Bid
         fields = [
-            'id', 'user', 'title', 'description', 'budget', 'origin',
-            'origin_address', 'destination', 'destination_address',
-            'weight', 'cargo_type', 'special_requirements', 'status',
-            'deadline', 'bid_files', 'bid_files_url', 'offers_count',
-            'lowest_offer', 'created_at', 'updated_at'
+            "id",
+            "user",
+            "title",
+            "description",
+            "budget",
+            "origin",
+            "origin_address",
+            "destination",
+            "destination_address",
+            "weight",
+            "cargo_type",
+            "special_requirements",
+            "status",
+            "deadline",
+            "bid_files",
+            "bid_files_url",
+            "offers_count",
+            "lowest_offer",
+            "created_at",
+            "updated_at",
         ]
-        read_only_fields = ['id', 'user', 'created_at', 'updated_at']
+        read_only_fields = ["id", "user", "created_at", "updated_at"]
 
     def get_offers_count(self, obj):
         return obj.offers.count()
@@ -41,9 +56,18 @@ class BidCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Bid
         fields = [
-            'title', 'description', 'budget', 'origin', 'origin_address',
-            'destination', 'destination_address', 'weight', 'cargo_type',
-            'special_requirements', 'deadline', 'bid_files'
+            "title",
+            "description",
+            "budget",
+            "origin",
+            "origin_address",
+            "destination",
+            "destination_address",
+            "weight",
+            "cargo_type",
+            "special_requirements",
+            "deadline",
+            "bid_files",
         ]
 
     def validate_budget(self, value):
@@ -53,28 +77,38 @@ class BidCreateSerializer(serializers.ModelSerializer):
 
     def validate_deadline(self, value):
         from django.utils import timezone
+
         if value <= timezone.now().date():
             raise serializers.ValidationError("Deadline must be in the future")
         return value
 
     def create(self, validated_data):
-        validated_data['user'] = self.context['request'].user
+        validated_data["user"] = self.context["request"].user
         return super().create(validated_data)
 
 
 class BidListSerializer(serializers.ModelSerializer):
     """Serializer for bid list view"""
 
-    user = UserSerializer(read_only=True)
     offers_count = serializers.SerializerMethodField()
     lowest_offer = serializers.SerializerMethodField()
 
     class Meta:
         model = Bid
         fields = [
-            'id', 'title', 'description', 'budget', 'origin', 'destination',
-            'weight', 'cargo_type', 'status', 'deadline', 'offers_count',
-            'lowest_offer', 'created_at'
+            "id",
+            "title",
+            "description",
+            "budget",
+            "origin",
+            "destination",
+            "weight",
+            "cargo_type",
+            "status",
+            "deadline",
+            "offers_count",
+            "lowest_offer",
+            "created_at",
         ]
 
     def get_offers_count(self, obj):
@@ -99,11 +133,27 @@ class BidDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Bid
         fields = [
-            'id', 'user', 'title', 'description', 'budget', 'origin',
-            'origin_address', 'destination', 'destination_address',
-            'weight', 'cargo_type', 'special_requirements', 'status',
-            'deadline', 'bid_files', 'bid_files_url', 'offers_count',
-            'lowest_offer', 'selected_offer', 'created_at', 'updated_at'
+            "id",
+            "user",
+            "title",
+            "description",
+            "budget",
+            "origin",
+            "origin_address",
+            "destination",
+            "destination_address",
+            "weight",
+            "cargo_type",
+            "special_requirements",
+            "status",
+            "deadline",
+            "bid_files",
+            "bid_files_url",
+            "offers_count",
+            "lowest_offer",
+            "selected_offer",
+            "created_at",
+            "updated_at",
         ]
 
     def get_offers_count(self, obj):
@@ -122,15 +172,16 @@ class BidDetailSerializer(serializers.ModelSerializer):
         if obj.selected_offer_id:
             try:
                 from apps.offers.models import Offer
+
                 selected_offer = Offer.objects.get(id=obj.selected_offer_id)
                 return {
-                    'id': selected_offer.id,
-                    'price': str(selected_offer.price),
-                    'carrier': {
-                        'id': selected_offer.user.id,
-                        'full_name': selected_offer.user.full_name,
-                        'company_name': selected_offer.user.company_name
-                    }
+                    "id": selected_offer.id,
+                    "price": str(selected_offer.price),
+                    "carrier": {
+                        "id": selected_offer.user.id,
+                        "full_name": selected_offer.user.full_name,
+                        "company_name": selected_offer.user.company_name,
+                    },
                 }
             except Offer.DoesNotExist:
                 return None

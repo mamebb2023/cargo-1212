@@ -7,17 +7,17 @@ from apps.bids.serializers import BidListSerializer
 class RatingSerializer(serializers.ModelSerializer):
     """Serializer for Rating model"""
 
-    user = UserSerializer(read_only=True)
-    carrier = UserSerializer(read_only=True)
+    rater = UserSerializer(read_only=True)
+    ratee = UserSerializer(read_only=True)
     bid = BidListSerializer(read_only=True)
 
     class Meta:
         model = Rating
         fields = [
-            'id', 'user', 'carrier', 'bid', 'score', 'comment',
+            'id', 'rater', 'ratee', 'bid', 'score', 'comment',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'user', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'rater', 'created_at', 'updated_at']
 
 
 class RatingCreateSerializer(serializers.ModelSerializer):
@@ -25,7 +25,7 @@ class RatingCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Rating
-        fields = ['bid', 'carrier', 'score', 'comment']
+        fields = ['bid', 'ratee', 'score', 'comment']
 
     def validate_score(self, value):
         if not (1 <= value <= 5):
@@ -33,42 +33,48 @@ class RatingCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-        user = self.context['request'].user
+        rater = self.context['request'].user
         bid = data['bid']
-        carrier = data['carrier']
-
-        # Check if user is the shipper of the bid
-        if bid.user != user:
-            raise serializers.ValidationError("You can only rate carriers for your own completed bids")
+        ratee = data['ratee']
 
         # Check if bid is completed
         if bid.status != 'completed':
             raise serializers.ValidationError("You can only rate after the bid is completed")
 
-        # Check if carrier submitted an offer for this bid that was selected
-        if not bid.selected_offer or bid.selected_offer.user != carrier:
-            raise serializers.ValidationError("You can only rate the carrier who was selected for this bid")
+        # Check if both users were involved in this bid
+        involved_users = [bid.user]
+        if bid.selected_offer:
+            involved_users.append(bid.selected_offer.user)
+
+        if rater not in involved_users:
+            raise serializers.ValidationError("You are not authorized to rate this bid")
+
+        if ratee not in involved_users:
+            raise serializers.ValidationError("The user you are trying to rate was not involved in this bid")
+
+        if rater == ratee:
+            raise serializers.ValidationError("You cannot rate yourself")
 
         # Check if rating already exists
-        if Rating.objects.filter(user=user, carrier=carrier, bid=bid).exists():
-            raise serializers.ValidationError("You have already rated this carrier for this bid")
+        if Rating.objects.filter(rater=rater, ratee=ratee, bid=bid).exists():
+            raise serializers.ValidationError("You have already rated this user for this bid")
 
         return data
 
     def create(self, validated_data):
-        validated_data['user'] = self.context['request'].user
+        validated_data['rater'] = self.context['request'].user
         return super().create(validated_data)
 
 
 class RatingListSerializer(serializers.ModelSerializer):
     """Serializer for rating list view"""
 
-    user = UserSerializer(read_only=True)
-    carrier = UserSerializer(read_only=True)
+    rater = UserSerializer(read_only=True)
+    ratee = UserSerializer(read_only=True)
     bid_title = serializers.CharField(source='bid.title', read_only=True)
 
     class Meta:
         model = Rating
         fields = [
-            'id', 'user', 'carrier', 'bid_title', 'score', 'comment', 'created_at'
+            'id', 'rater', 'ratee', 'bid_title', 'score', 'comment', 'created_at'
         ]

@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Filter, Package, Plus, Check, X, Eye } from "lucide-react";
-import { bidsApi } from "@/lib/api";
+import { Search, Filter, Package, Plus } from "lucide-react";
+import { bidsApi, paymentsApi } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -17,16 +17,49 @@ export default function BidsPage() {
   const [offersFilter, setOffersFilter] = useState<string>("all");
   const [cargoTypeFilter, setCargoTypeFilter] = useState<string>("all");
 
-  const [bids, setBids] = useState<any[]>([]);
+  const [bids, setBids] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
-  const [paidBids, setPaidBids] = useState<number[]>([]);
+  const [paidBids, setPaidBids] = useState<Set<number>>(new Set());
 
-  // Fetch bids on component mount
+  // Redirect shippers to my-bids page
   useEffect(() => {
-    fetchBids();
-  }, []);
+    console.log("User role:", user?.role, "User ID:", user?.id);
+    if (user && user.role === "shipper") {
+      console.log("Redirecting shipper to my-bids page");
+      navigate("/dashboard/my-bids", { replace: true });
+    }
+  }, [user, navigate]);
 
-  const fetchBids = async () => {
+  const checkPaidBids = useCallback(async (bidsData: unknown[]) => {
+    if (!user?.id) return;
+
+    try {
+      // Get user's payments to see which bids they've paid for
+      const paymentsResponse = await paymentsApi.getPayments();
+      const userPayments = paymentsResponse.data || [];
+
+      // Create a set of bid IDs that the user has paid for (pending or approved)
+      const paidBidIds = new Set<number>();
+      userPayments.forEach((payment: any) => {
+        if (payment.bid && (payment.status === 'approved' || payment.status === 'pending')) {
+          // Handle both object and number bid references
+          const bidId = typeof payment.bid === 'object' && payment.bid?.id
+            ? payment.bid.id
+            : payment.bid;
+          console.log('Found paid bid:', bidId, 'for payment:', payment.id, 'status:', payment.status);
+          paidBidIds.add(bidId);
+        }
+      });
+
+      console.log('Total paid bids found:', paidBidIds.size, Array.from(paidBidIds));
+      setPaidBids(paidBidIds);
+    } catch (error) {
+      console.error('Failed to check payment status:', error);
+      setPaidBids(new Set());
+    }
+  }, [user?.id]);
+
+  const fetchBids = useCallback(async () => {
     try {
       setLoading(true);
       const response = await bidsApi.getBids();
@@ -34,9 +67,9 @@ export default function BidsPage() {
       const bidsData = Array.isArray(response.data) ? response.data : [];
       setBids(bidsData);
 
-      // For now, we'll assume all bids are unpaid for demo
-      // In real app, this would check user's payment status for each bid
-      setPaidBids([]);
+      // Check payment status for these bids
+      await checkPaidBids(bidsData);
+
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to load bids";
@@ -45,7 +78,29 @@ export default function BidsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, checkPaidBids]);
+
+  // Fetch bids on component mount and when user changes
+  useEffect(() => {
+    if (user) {
+      fetchBids();
+    }
+  }, [fetchBids, user]);
+
+  // Refresh data when the tab regains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user) {
+        fetchBids();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [fetchBids, user]);
 
   // Process bids data to add payment status
   const processedBids = bids
@@ -55,9 +110,9 @@ export default function BidsPage() {
         bid.status === "approved" ||
         bid.status === undefined
     )
-    .map((bid) => ({
+    .map((bid: any) => ({
       ...bid,
-      isPaid: paidBids.includes(bid.id),
+      isPaid: paidBids.has(bid.id),
     }));
 
   const formatStatusLabel = (status?: string) => {
@@ -384,7 +439,7 @@ export default function BidsPage() {
                               <strong>Deadline:</strong> {bid.deadline}
                             </span>
                             <span>
-                              <strong>Offers:</strong> {bid.offers}
+                              <strong>Offers:</strong> {bid.offers === 0 ? "No offers" : bid.offers}
                             </span>
                           </div>
                           {bid.lowestOffer && (
@@ -392,9 +447,6 @@ export default function BidsPage() {
                               <strong>Lowest Offer:</strong> {bid.lowestOffer}
                             </div>
                           )}
-                          <div className="text-sm text-gray-500">
-                            <strong>Shipper:</strong> {bid.shipperName}
-                          </div>
                         </div>
                       ) : (
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -426,15 +478,6 @@ export default function BidsPage() {
                       >
                         View Details
                       </Button>
-                      {!bid.isPaid && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/dashboard/bids/${bid.id}`)}
-                        >
-                          Pay & Unlock
-                        </Button>
-                      )}
                     </div>
                   </div>
                 </div>

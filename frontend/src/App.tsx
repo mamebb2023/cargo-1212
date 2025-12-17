@@ -12,6 +12,7 @@ import CreateBidPage from "@/pages/dashboard/CreateBidPage";
 import BidDetailsPage from "@/pages/dashboard/BidDetailsPage";
 import SubmitOfferPage from "@/pages/dashboard/SubmitOfferPage";
 import MyBidsPage from "@/pages/dashboard/MyBidsPage";
+import OffersPage from "@/pages/dashboard/OffersPage";
 import ProfilePage from "@/pages/dashboard/ProfilePage";
 import SettingsPage from "@/pages/dashboard/SettingsPage";
 import NotificationsPage from "@/pages/dashboard/NotificationsPage";
@@ -28,7 +29,7 @@ function App() {
   return (
     <BrowserRouter>
       <Toaster
-        position="top-right"
+        position="top-center"
         toastOptions={{
           duration: 3000,
           style: {
@@ -88,6 +89,8 @@ function App() {
           <Route path="bids/:id" element={<BidDetailsPage />} />
           <Route path="bids/:id/submit-offer" element={<SubmitOfferPage />} />
           <Route path="my-bids" element={<MyBidsPage />} />
+          <Route path="offers" element={<OffersPage />} />
+          <Route path="offers/:bidId" element={<OffersPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="notifications" element={<NotificationsPage />} />

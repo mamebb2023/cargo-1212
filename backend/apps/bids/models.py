@@ -7,7 +7,10 @@ class Bid(models.Model):
     """Bid model for cargo transport requests"""
 
     STATUS_CHOICES = [
+        ("pending", "Pending"),
         ("active", "Active"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
         ("closed", "Closed"),
         ("completed", "Completed"),
         ("cancelled", "Cancelled"),
@@ -38,7 +41,7 @@ class Bid(models.Model):
     special_requirements = models.TextField(blank=True)
 
     # Status and dates
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     deadline = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -92,3 +95,35 @@ class Bid(models.Model):
         """Mark bid as completed"""
         self.status = "completed"
         self.save()
+
+    def approve_bid(self, admin_user):
+        """Approve the bid"""
+        self.status = "active"
+        self.save()
+
+        # Create notification for the shipper
+        from apps.notifications.models import Notification
+
+        Notification.create_notification(
+            user=self.user,
+            title="Bid Approved",
+            message=f"Your bid '{self.title}' has been approved and is now active.",
+            notification_type="bid_approved",
+            related_bid=self,
+        )
+
+    def reject_bid(self, admin_user, reason=""):
+        """Reject the bid"""
+        self.status = "rejected"
+        self.save()
+
+        # Create notification for the shipper
+        from apps.notifications.models import Notification
+
+        Notification.create_notification(
+            user=self.user,
+            title="Bid Rejected",
+            message=f"Your bid '{self.title}' has been rejected. Reason: {reason}",
+            notification_type="bid_rejected",
+            related_bid=self,
+        )

@@ -270,6 +270,17 @@ export default function DashboardPage() {
                   </p>
                 </button>
                 <button
+                  onClick={() => navigate("/dashboard/offers")}
+                  className="w-full text-left px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <p className="text-sm font-medium text-gray-900">
+                    My Offers
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    View and track your submitted offers
+                  </p>
+                </button>
+                <button
                   onClick={() => navigate("/dashboard/profile")}
                   className="w-full text-left px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                 >

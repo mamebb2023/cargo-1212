@@ -1,3 +1,4 @@
+from django.db import models
 from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -21,34 +22,25 @@ class RatingListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         user = self.request.user
 
-        if user.role == "shipper":
-            # Shippers see ratings they gave
-            return Rating.objects.filter(user=user).order_by("-created_at")
-        elif user.role == "carrier":
-            # Carriers see ratings they received
-            return Rating.objects.filter(carrier=user).order_by("-created_at")
-        elif user.role == "admin":
+        if user.role == "admin":
             # Admins see all ratings
             return Rating.objects.all().order_by("-created_at")
-
-        return Rating.objects.none()
+        else:
+            # Users see ratings they gave or received
+            return Rating.objects.filter(
+                models.Q(rater=user) | models.Q(ratee=user)
+            ).order_by("-created_at")
 
     def create(self, request, *args, **kwargs):
-        if request.user.role != "shipper":
-            return Response(
-                api_response(success=False, message="Only shippers can create ratings"),
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         rating = serializer.save()
 
-        # Create notification for the carrier
+        # Create notification for the ratee
         Notification.create_notification(
-            user=rating.carrier,
+            user=rating.ratee,
             title="New Rating Received",
-            message=f"You received a {rating.score}-star rating from {rating.user.full_name} for bid '{rating.bid.title}'",
+            message=f"You received a {rating.score}-star rating from {rating.rater.full_name} for bid '{rating.bid.title}'",
             notification_type="rating_received",
             related_bid=rating.bid,
         )
@@ -78,64 +70,74 @@ class RatingListCreateView(generics.ListCreateAPIView):
 def create_bid_review_view(request):
     """Create rating/review for a completed bid (matches frontend endpoint)"""
 
-    if request.user.role != "shipper":
-        return Response(
-            api_response(success=False, message="Only shippers can create ratings"),
-            status=status.HTTP_403_FORBIDDEN,
-        )
-
     bid_id = request.data.get("bid")
+    ratee_id = request.data.get("ratee")  # The user being rated
     score = request.data.get("rating") or request.data.get("score")
     comment = request.data.get("comment", "")
 
-    if not bid_id or not score:
+    if not bid_id or not ratee_id or not score:
         return Response(
-            api_response(success=False, message="Bid ID and rating score are required"),
+            api_response(success=False, message="Bid ID, ratee ID, and rating score are required"),
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     try:
         from apps.bids.models import Bid
+        from django.contrib.auth import get_user_model
 
+        User = get_user_model()
         bid = Bid.objects.get(id=bid_id)
+        ratee = User.objects.get(id=ratee_id)
     except Bid.DoesNotExist:
         return Response(
             api_response(success=False, message="Bid not found"),
             status=status.HTTP_404_NOT_FOUND,
         )
-
-    # Check if user can rate this bid
-    if bid.user != request.user:
+    except User.DoesNotExist:
         return Response(
-            api_response(success=False, message="You can only rate your own bids"),
-            status=status.HTTP_403_FORBIDDEN,
+            api_response(success=False, message="User to rate not found"),
+            status=status.HTTP_404_NOT_FOUND,
         )
 
+    # Check if bid is completed
     if bid.status != "completed":
         return Response(
             api_response(success=False, message="You can only rate completed bids"),
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    if not bid.selected_offer:
+    # Check if the rater and ratee were involved in this bid
+    if request.user not in [bid.user, bid.selected_offer.user if bid.selected_offer else None]:
         return Response(
-            api_response(success=False, message="No carrier was selected for this bid"),
+            api_response(success=False, message="You are not authorized to rate this bid"),
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    if ratee not in [bid.user, bid.selected_offer.user if bid.selected_offer else None]:
+        return Response(
+            api_response(success=False, message="The user you are trying to rate was not involved in this bid"),
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if request.user == ratee:
+        return Response(
+            api_response(success=False, message="You cannot rate yourself"),
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     # Check if rating already exists
     if Rating.objects.filter(
-        user=request.user, bid=bid, carrier=bid.selected_offer.user
+        rater=request.user, ratee=ratee, bid=bid
     ).exists():
         return Response(
-            api_response(success=False, message="You have already rated this bid"),
+            api_response(success=False, message="You have already rated this user for this bid"),
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     # Create the rating
     rating = Rating.objects.create(
-        user=request.user,
-        carrier=bid.selected_offer.user,
+        rater=request.user,
+        ratee=ratee,
         bid=bid,
         score=int(score),
         comment=comment,
@@ -143,9 +145,9 @@ def create_bid_review_view(request):
 
     # Create notification
     Notification.create_notification(
-        user=rating.carrier,
+        user=rating.ratee,
         title="New Rating Received",
-        message=f"You received a {rating.score}-star rating from {rating.user.full_name} for bid '{rating.bid.title}'",
+        message=f"You received a {rating.score}-star rating from {rating.rater.full_name} for bid '{rating.bid.title}'",
         notification_type="rating_received",
         related_bid=rating.bid,
     )

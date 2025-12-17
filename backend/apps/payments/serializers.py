@@ -47,15 +47,23 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
+        request = self.context.get('request')
+        if not request or not request.user:
+            raise serializers.ValidationError("Authentication required")
+
         # If bid is provided, check if it's for bid access payment
         if data.get('bid'):
             bid = data['bid']
             if bid.status != 'active':
                 raise serializers.ValidationError("Cannot make payment for inactive bid")
 
-            # Check if user already has access to this bid
-            if bid.is_paid:
-                raise serializers.ValidationError("User already has access to this bid")
+            # Check if user already has payment access for this specific bid
+            user_has_paid_for_bid = (
+                hasattr(request.user, "payments")
+                and request.user.payments.filter(status="approved", bid=bid).exists()
+            )
+            if user_has_paid_for_bid:
+                raise serializers.ValidationError("User already has payment access for this bid")
 
         return data
 
@@ -67,17 +75,14 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
 class PaymentListSerializer(serializers.ModelSerializer):
     """Serializer for payment list view"""
 
-    bid_title = serializers.CharField(source='bid.title', read_only=True) if 'bid' in locals() else serializers.SerializerMethodField()
+    bid = BidListSerializer(read_only=True)
 
     class Meta:
         model = Payment
         fields = [
             'id', 'amount', 'payment_method', 'reference_number',
-            'status', 'bid', 'bid_title', 'created_at'
+            'status', 'bid', 'created_at'
         ]
-
-    def get_bid_title(self, obj):
-        return obj.bid.title if obj.bid else None
 
 
 class PaymentUpdateSerializer(serializers.ModelSerializer):

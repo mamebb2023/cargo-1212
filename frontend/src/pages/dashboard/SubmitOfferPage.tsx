@@ -4,9 +4,10 @@ import { toast } from "react-hot-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Package, Truck, DollarSign } from "lucide-react";
+import { ArrowLeft, Truck, DollarSign, Calendar } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { verificationApi } from "@/lib/api";
+import { bidsApi, verificationApi, offersApi } from "@/lib/api";
+import type { BackendBidDetail } from "@/types";
 
 export default function SubmitOfferPage() {
   const { id } = useParams();
@@ -15,6 +16,9 @@ export default function SubmitOfferPage() {
   const [verificationStatus, setVerificationStatus] = useState<
     "loading" | "verified" | "pending" | "rejected"
   >("loading");
+  const [bid, setBid] = useState<BackendBidDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     offerAmount: "",
     estimatedDeliveryTime: "",
@@ -23,21 +27,29 @@ export default function SubmitOfferPage() {
     specialNotes: "",
   });
 
-  // Mock bid data - in real app, fetch based on id
-  const bid = {
-    id: parseInt(id || "1"),
-    title: "Freight Transport from Addis Ababa to Dire Dawa",
-    origin: "Addis Ababa",
-    destination: "Dire Dawa",
-    cargoType: "Construction Materials",
-    weight: "50 tons",
-    budget: "ETB 25,000",
-    deadline: "2024-01-18",
-  };
-
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
+  // Fetch bid details
+  useEffect(() => {
+    const fetchBidDetails = async () => {
+      if (!id) return;
+
+      try {
+        setLoading(true);
+        const response = await bidsApi.getBidDetails(parseInt(id));
+        setBid(response.data);
+      } catch {
+        toast.error("Failed to load bid details");
+        navigate("/dashboard/bids");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBidDetails();
+  }, [id, navigate]);
 
   useEffect(() => {
     const loadVerification = async () => {
@@ -63,8 +75,13 @@ export default function SubmitOfferPage() {
     void loadVerification();
   }, [user]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!bid) {
+      toast.error("Bid data not loaded");
+      return;
+    }
 
     if (verificationStatus === "loading") {
       toast.error("Please wait while we check your verification status");
@@ -92,17 +109,60 @@ export default function SubmitOfferPage() {
 
     // Validate offer amount
     const offerAmount = parseFloat(formData.offerAmount);
-    // const budgetAmount = parseFloat(bid.budget.replace(/[^\d.]/g, ""));
-
     if (isNaN(offerAmount) || offerAmount <= 0) {
       toast.error("Please enter a valid offer amount");
       return;
     }
 
-    // Handle offer submission
-    toast.success("Your offer has been submitted successfully!");
-    navigate(`/dashboard/bids/${bid.id}`);
+    try {
+      setSubmitting(true);
+
+      // Prepare offer data
+      const offerData = {
+        bid: bid.id,
+        price: offerAmount,
+        delivery_time: formData.estimatedDeliveryTime,
+        vehicle_type: formData.vehicleType,
+        cpo_service_number: formData.cpoServiceNumber,
+        notes: formData.specialNotes,
+      };
+
+      // Submit offer to backend
+      await offersApi.createOffer(offerData);
+
+      toast.success("Your offer has been submitted successfully!");
+      navigate(`/dashboard/bids/${bid.id}`);
+    } catch (error) {
+      const errorMessage =
+        (error as Error)?.message || "Failed to submit offer";
+      toast.error(errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading bid details...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!bid) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-600">Bid not found</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -139,41 +199,45 @@ export default function SubmitOfferPage() {
       )}
 
       {/* Bid Summary */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Bid Summary
-        </h2>
-        <div className="space-y-3">
-          <div>
-            <p className="text-sm font-medium text-gray-500">
-              Transport Request
-            </p>
-            <p className="text-gray-900">{bid.title}</p>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
+      {bid && (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Bid Summary
+          </h2>
+          <div className="space-y-3">
             <div>
-              <p className="text-sm font-medium text-gray-500">Route</p>
+              <p className="text-sm font-medium text-gray-500">
+                Transport Request
+              </p>
               <p className="text-gray-900">
-                {bid.origin} → {bid.destination}
+                {bid.title || bid.description || "Transport Bid"}
               </p>
             </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Cargo</p>
-              <p className="text-gray-900">
-                {bid.cargoType} ({bid.weight})
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Budget</p>
-              <p className="text-gray-900 font-semibold">{bid.budget}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Deadline</p>
-              <p className="text-gray-900">{bid.deadline}</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Route</p>
+                <p className="text-gray-900">
+                  {bid.origin} → {bid.destination}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Cargo</p>
+                <p className="text-gray-900">
+                  {bid.cargo_type || bid.cargoType} ({bid.weight})
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Budget</p>
+                <p className="text-gray-900 font-semibold">ETB {bid.budget}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Deadline</p>
+                <p className="text-gray-900">{bid.deadline}</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Offer Form */}
       <form
@@ -207,21 +271,21 @@ export default function SubmitOfferPage() {
               htmlFor="estimatedDeliveryTime"
               className="flex items-center gap-2"
             >
-              <Package className="w-4 h-4" />
-              Estimated Delivery Time <span className="text-red-500">*</span>
+              <Calendar className="w-4 h-4" />
+              Estimated Delivery Date <span className="text-red-500">*</span>
             </Label>
             <Input
               id="estimatedDeliveryTime"
-              type="text"
-              placeholder="e.g., 3 days, 48 hours"
+              type="date"
               value={formData.estimatedDeliveryTime}
               onChange={(e) =>
                 handleChange("estimatedDeliveryTime", e.target.value)
               }
               required
+              min={new Date().toISOString().split("T")[0]} // Prevent past dates
             />
             <p className="text-xs text-gray-500">
-              How long will it take to deliver the cargo?
+              Select the date when you expect to deliver the cargo
             </p>
           </div>
 
@@ -286,8 +350,8 @@ export default function SubmitOfferPage() {
           >
             Cancel
           </Button>
-          <Button type="submit" variant="secondary">
-            Submit Offer
+          <Button type="submit" variant="secondary" disabled={submitting}>
+            {submitting ? "Submitting..." : "Submit Offer"}
           </Button>
         </div>
       </form>

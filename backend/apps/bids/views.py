@@ -1,8 +1,8 @@
+from django.db import models
 from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.db.models import Q
 from .models import Bid
 from .serializers import (
     BidSerializer,
@@ -99,21 +99,26 @@ class BidDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = BidDetailSerializer
 
     def get_queryset(self):
-        user = self.request.user
-        if user.role == "admin":
-            return Bid.objects.all()
-        elif user.role == "shipper":
-            return Bid.objects.filter(user=user)
-        else:
-            # Carriers can view bids but with restrictions
-            return Bid.objects.filter(status="active")
+        # Allow all authenticated users to view any bid
+        return Bid.objects.all()
 
     def retrieve(self, request, *args, **kwargs):
         bid = self.get_object()
 
-        # Check if carrier has paid for this bid
-        if request.user.role == "carrier" and not bid.is_paid:
-            # Return limited information
+        # Check if user can see full bid details
+        # Allow if: user owns the bid OR user has made payments (pending or approved) for this specific bid
+        user_has_paid_for_this_bid = (
+            hasattr(request.user, "payments")
+            and request.user.payments.filter(
+                bid=bid
+            ).filter(
+                models.Q(status="approved") | models.Q(status="pending")
+            ).exists()
+        )
+        user_owns_bid = request.user.id == bid.user.id
+
+        if not (user_owns_bid or user_has_paid_for_this_bid):
+            # Return limited information for users who haven't paid and don't own the bid
             limited_data = {
                 "id": bid.id,
                 "title": bid.title,
@@ -153,18 +158,34 @@ class BidDetailView(generics.RetrieveUpdateDestroyAPIView):
     def update(self, request, *args, **kwargs):
         bid = self.get_object()
 
-        # Only allow shippers to update their own bids, and only if not closed
-        if request.user != bid.user or bid.status != "active":
+        # Allow shippers to update their own bids, and admins to update any bid status
+        if request.user.role == "admin":
+            # Admins can update any bid
+            pass
+        elif request.user == bid.user and bid.status == "active":
+            # Shippers can only update their own active bids (for editing details)
+            pass
+        else:
             return Response(
                 api_response(
-                    success=False, message="You can only update your own active bids"
+                    success=False,
+                    message="You can only update your own active bids or admins can update any bid",
                 ),
                 status=status.HTTP_403_FORBIDDEN,
             )
 
         serializer = self.get_serializer(bid, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+
+        old_status = bid.status
+        bid = serializer.save()
+
+        # Handle status changes by admins
+        if request.user.role == "admin" and old_status != bid.status:
+            if bid.status == "active":
+                bid.approve_bid(request.user)
+            elif bid.status == "rejected":
+                bid.reject_bid(request.user, request.data.get("rejection_reason", ""))
 
         return Response(
             api_response(
@@ -193,15 +214,21 @@ class BidDetailView(generics.RetrieveUpdateDestroyAPIView):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def my_bids_view(request):
-    """Get current user's bids (for shippers)"""
+    """Get current user's bids (for shippers and admins)"""
 
-    if request.user.role != "shipper":
+    if request.user.role == "shipper":
+        # Shippers see only their own bids
+        bids = Bid.objects.filter(user=request.user).order_by("-created_at")
+    elif request.user.role == "admin":
+        # Admins see only their own bids on "My Bids" page (not all bids)
+        bids = Bid.objects.filter(user=request.user).order_by("-created_at")
+    else:
         return Response(
-            api_response(success=False, message="Only shippers can view their bids"),
+            api_response(
+                success=False, message="Only shippers and admins can view bids"
+            ),
             status=status.HTTP_403_FORBIDDEN,
         )
-
-    bids = Bid.objects.filter(user=request.user).order_by("-created_at")
     serializer = BidListSerializer(bids, many=True)
 
     return Response(

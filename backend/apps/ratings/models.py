@@ -7,18 +7,17 @@ class Rating(models.Model):
     """Rating model for post-job feedback"""
 
     # Relationships
-    user = models.ForeignKey(
+    rater = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='given_ratings',
-        help_text="User who gave the rating (shipper)"
+        help_text="User who gave the rating"
     )
-    carrier = models.ForeignKey(
+    ratee = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='received_ratings',
-        limit_choices_to={'role': 'carrier'},
-        help_text="Carrier being rated"
+        help_text="User being rated"
     )
     bid = models.ForeignKey(
         'bids.Bid',
@@ -39,12 +38,12 @@ class Rating(models.Model):
 
     class Meta:
         ordering = ['-created_at']
-        unique_together = ['user', 'carrier', 'bid']  # One rating per user-carrier-bid combination
+        unique_together = ['rater', 'ratee', 'bid']  # One rating per rater-ratee-bid combination
 
     def __str__(self):
-        return f"Rating {self.score} by {self.user.full_name} for {self.carrier.full_name}"
+        return f"Rating {self.score} by {self.rater.full_name} for {self.ratee.full_name}"
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # Update carrier's average rating
-        self.carrier.update_rating()
+        # Update ratee's average rating
+        self.ratee.update_rating()

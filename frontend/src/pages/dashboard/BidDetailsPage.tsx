@@ -14,15 +14,53 @@ import {
 } from "lucide-react";
 import { bidsApi, paymentsApi } from "@/lib/api";
 import PaymentModal from "@/components/payments/PaymentModal";
-import type { BidDetail, BackendBidDetail } from "@/types";
+import { useAuthContext } from "@/context/AuthContext";
+import RatingModal from "@/components/RatingModal";
+import type { BidDetail, BackendBidDetail, LimitedBidDetail } from "@/types";
 
 export default function BidDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [hasPaid, setHasPaid] = useState(false);
+  const { user } = useAuthContext();
+  const [requiresPayment, setRequiresPayment] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [bid, setBid] = useState<BidDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingTarget, setRatingTarget] = useState<{
+    id: number;
+    name: string;
+    role: "shipper" | "carrier";
+  } | null>(null);
+
+  // Check if current user is the bid owner
+  const isBidOwner = user && bid && user.email === bid.shipperEmail;
+
+  // Format date to readable format
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Format number with commas
+  const formatCurrency = (amount: string) => {
+    try {
+      const num = parseFloat(amount);
+      return num.toLocaleString("en-US");
+    } catch {
+      return amount;
+    }
+  };
 
   // Fetch bid details on component mount
   useEffect(() => {
@@ -35,32 +73,58 @@ export default function BidDetailsPage() {
     try {
       setLoading(true);
       const response = await bidsApi.getBidDetails(bidId);
-      const data = response.data as BackendBidDetail;
-      const mapped: BidDetail = {
-        id: data.id,
-        title: data.title,
-        description: data.description,
-        origin: data.origin,
-        destination: data.destination,
-        cargoType: data.cargo_type || data.cargoType || "",
-        weight: data.weight,
-        deadline: data.deadline,
-        budget: data.budget,
-        postedDate: data.created_at,
-        offers: data.offers_count,
-        lowestOffer: data.lowest_offer,
-        originAddress: data.origin_address,
-        destinationAddress: data.destination_address,
-        specialRequirements: data.special_requirements,
-        shipperName:
-          data.user?.company_name || data.user?.full_name || data.user?.email,
-        shipperPhone: data.user?.phone,
-        shipperEmail: data.user?.email,
-        bidFilesUrl: data.bid_files_url,
-      };
-      setBid(mapped);
-      // For now, assume user hasn't paid - in real app check payment status
-      setHasPaid(false);
+      const data = response.data;
+
+      // Check if this is limited data (requires payment)
+      if ("requires_payment" in data && data.requires_payment) {
+        // Limited data response
+        const limitedData = data as LimitedBidDetail;
+        const mapped: BidDetail = {
+          id: limitedData.id,
+          title: limitedData.title,
+          description: limitedData.description,
+          origin: limitedData.origin,
+          destination: limitedData.destination,
+          cargoType: limitedData.cargo_type || "",
+          weight: limitedData.weight,
+          deadline: limitedData.deadline,
+          budget: limitedData.budget,
+          postedDate: "",
+          offers: limitedData.offers_count,
+          lowestOffer: limitedData.lowest_offer,
+        };
+        setBid(mapped);
+        setRequiresPayment(true);
+      } else {
+        // Full data response
+        const fullData = data as BackendBidDetail;
+        const mapped: BidDetail = {
+          id: fullData.id,
+          title: fullData.title,
+          description: fullData.description,
+          origin: fullData.origin,
+          destination: fullData.destination,
+          cargoType: fullData.cargo_type || fullData.cargoType || "",
+          weight: fullData.weight,
+          deadline: fullData.deadline,
+          budget: fullData.budget,
+          postedDate: fullData.created_at,
+          offers: fullData.offers_count,
+          lowestOffer: fullData.lowest_offer,
+          originAddress: fullData.origin_address,
+          destinationAddress: fullData.destination_address,
+          specialRequirements: fullData.special_requirements,
+          shipperName:
+            fullData.user?.company_name ||
+            fullData.user?.full_name ||
+            fullData.user?.email,
+          shipperPhone: fullData.user?.phone,
+          shipperEmail: fullData.user?.email,
+          bidFilesUrl: fullData.bid_files_url,
+        };
+        setBid(mapped);
+        setRequiresPayment(false);
+      }
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message || "Failed to load bid details");
@@ -102,7 +166,8 @@ export default function BidDetailsPage() {
       toast.success(
         "Payment submitted successfully and is under review. You will be notified once approved."
       );
-      setHasPaid(true);
+      // Refresh the bid details to show full information if payment is approved
+      fetchBidDetails(bid.id);
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message || "Payment submission failed");
@@ -148,9 +213,9 @@ export default function BidDetailsPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Bid Details</h1>
           <p className="text-gray-600 mt-1">
-            {hasPaid
-              ? "Complete bid information and submission options"
-              : "Basic information only - pay ETB 200 to unlock full details and submit offers"}
+            {requiresPayment
+              ? "Basic information only - pay ETB 200 to unlock full details and submit offers"
+              : "Complete bid information and submission options"}
           </p>
         </div>
       </div>
@@ -164,8 +229,8 @@ export default function BidDetailsPage() {
           <p className="text-gray-600 line-clamp-3">{bid.description}</p>
         </div>
 
-        {/* Show additional details only after payment */}
-        {hasPaid && (
+        {/* Show additional details only if payment not required */}
+        {!requiresPayment && (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
@@ -206,7 +271,7 @@ export default function BidDetailsPage() {
                   <div>
                     <p className="text-sm font-medium text-gray-500">Budget</p>
                     <p className="text-gray-900 text-lg font-semibold">
-                      {bid.budget}
+                      ETB {formatCurrency(bid.budget)}
                     </p>
                   </div>
                 </div>
@@ -216,7 +281,7 @@ export default function BidDetailsPage() {
             <div className="pt-4 border-t border-gray-200">
               <div className="flex items-center justify-between text-sm">
                 <span className="flex flex-col md:flex-row text-gray-600">
-                  <strong>Posted:</strong> {bid.postedDate}
+                  <strong>Posted:</strong> {formatDate(bid.postedDate)}
                 </span>
                 <span className="flex flex-col md:flex-row text-gray-600">
                   <strong>Offers Received:</strong> {bid.offers}
@@ -233,7 +298,7 @@ export default function BidDetailsPage() {
       </div>
 
       {/* Payment Gate or Full Details */}
-      {!hasPaid ? (
+      {requiresPayment ? (
         <>
           {/* Unlock Full Details Box - Always visible until payment */}
           <div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-200 p-8">
@@ -294,7 +359,6 @@ export default function BidDetailsPage() {
             onClose={() => setShowPaymentForm(false)}
             onSubmit={handlePaymentSubmit}
             onSuccess={() => {
-              setHasPaid(true);
               setShowPaymentForm(false);
             }}
             amountLabel="ETB 200"
@@ -303,7 +367,7 @@ export default function BidDetailsPage() {
         </>
       ) : (
         <>
-          {/* Full Details (Visible After Payment) */}
+          {/* Full Details (Visible when payment not required) */}
           <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -360,29 +424,105 @@ export default function BidDetailsPage() {
             </div>
           </div>
 
-          {/* Submit Offer Section */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Submit Your Offer
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Ready to transport this cargo? Submit your competitive offer
-              below.
-            </p>
-            <div className="flex gap-3">
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() =>
-                  navigate(`/dashboard/bids/${bid.id}/submit-offer`)
-                }
-              >
-                Submit Offer
-              </Button>
-              <Button variant="outline">Contact Shipper</Button>
+          {/* Rating Section - Show for completed bids where user can rate the other party */}
+          {bid && bid.status === "completed" && (
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Rate Your Experience
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Share your feedback about the other party involved in this
+                transaction.
+              </p>
+              <div className="flex gap-3">
+                {isBidOwner && bid.selected_offer?.carrier && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      // For shipper rating carrier
+                      setRatingTarget({
+                        id: bid.selected_offer.carrier.id,
+                        name:
+                          bid.selected_offer.carrier.company_name ||
+                          bid.selected_offer.carrier.full_name ||
+                          "Carrier",
+                        role: "carrier",
+                      });
+                      setShowRatingModal(true);
+                    }}
+                  >
+                    Rate Carrier
+                  </Button>
+                )}
+                {!isBidOwner && user?.role === "carrier" && bid.user && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      // For carrier rating shipper
+                      setRatingTarget({
+                        id: bid.user.id,
+                        name:
+                          bid.user.company_name ||
+                          bid.user.full_name ||
+                          bid.shipperName ||
+                          "Shipper",
+                        role: "shipper",
+                      });
+                      setShowRatingModal(true);
+                    }}
+                  >
+                    Rate Shipper
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Submit Offer Section - Only show if user is not the bid owner */}
+          {!isBidOwner && (
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Submit Your Offer
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Ready to transport this cargo? Submit your competitive offer
+                below.
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() =>
+                    navigate(`/dashboard/bids/${bid.id}/submit-offer`)
+                  }
+                >
+                  Submit Offer
+                </Button>
+                <Button variant="outline">Contact Shipper</Button>
+              </div>
+            </div>
+          )}
         </>
+      )}
+
+      {/* Rating Modal */}
+      {ratingTarget && bid && (
+        <RatingModal
+          isOpen={showRatingModal}
+          onClose={() => {
+            setShowRatingModal(false);
+            setRatingTarget(null);
+          }}
+          bidId={bid.id}
+          bidTitle={bid.title}
+          rateeId={ratingTarget.id}
+          rateeName={ratingTarget.name}
+          rateeRole={ratingTarget.role}
+          onSuccess={() => {
+            // Refresh the page or show success message
+            toast.success("Rating submitted successfully!");
+          }}
+        />
       )}
     </div>
   );

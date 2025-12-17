@@ -63,6 +63,7 @@ export interface BackendBidDetail {
   weight: string;
   deadline: string;
   budget: string;
+  status?: string;
   created_at?: string;
   offers_count?: number;
   lowest_offer?: string | null;
@@ -77,6 +78,22 @@ export interface BackendBidDetail {
     email?: string;
     phone?: string;
   };
+}
+
+export interface LimitedBidDetail {
+  id: number;
+  title: string;
+  description: string;
+  origin: string;
+  destination: string;
+  cargo_type: string;
+  weight: string;
+  deadline: string;
+  budget: string;
+  offers_count: number;
+  lowest_offer?: string | null;
+  requires_payment: boolean;
+  payment_amount: string;
 }
 
 export type StatCard = {
@@ -177,6 +194,14 @@ export interface AdminBid {
   offers_count?: number;
   lowest_offer?: string | null;
   created_at?: string;
+  origin?: string;
+  destination?: string;
+  user?: {
+    company_name?: string;
+    full_name?: string;
+    email?: string;
+    phone?: string;
+  };
 }
 
 export interface Notification {

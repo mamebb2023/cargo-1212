@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { ArrowLeft, CreditCard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { verificationApi } from "@/lib/api";
+import { verificationApi, bidsApi } from "@/lib/api";
 import { paymentsApi } from "@/lib/api";
 import PaymentModal from "@/components/payments/PaymentModal";
 
@@ -23,7 +23,9 @@ export default function CreateBidPage() {
     title: "",
     description: "",
     origin: "",
+    originAddress: "",
     destination: "",
+    destinationAddress: "",
     cargoType: "",
     weight: "",
     budget: "",
@@ -112,6 +114,26 @@ export default function CreateBidPage() {
     file: File;
   }) => {
     try {
+      // First create the bid
+      const bidData = {
+        title: formData.title,
+        description: formData.description,
+        budget: formData.budget,
+        origin: formData.origin,
+        origin_address: formData.originAddress || "",
+        destination: formData.destination,
+        destination_address: formData.destinationAddress || "",
+        cargo_type: formData.cargoType,
+        weight: formData.weight,
+        deadline: formData.deadline,
+        special_requirements: formData.specialRequirements || "",
+      };
+
+      console.log("Creating bid with data:", bidData);
+      const bidResponse = await bidsApi.createBid(bidData);
+      console.log("Bid created:", bidResponse);
+
+      // Then create the payment
       const formDataPayload = new FormData();
       formDataPayload.append("amount", formData.budget || "0");
       formDataPayload.append("payment_method", paymentMethod);
@@ -119,14 +141,15 @@ export default function CreateBidPage() {
       formDataPayload.append("payment_proof", file);
 
       await paymentsApi.createPayment(formDataPayload);
-      toast.success("Payment uploaded. Your bid will be reviewed.");
+      toast.success("Bid created and payment uploaded. Your bid will be reviewed.");
       setPaymentModalOpen(false);
       navigate("/dashboard/my-bids");
     } catch (error: unknown) {
+      console.error("Error creating bid:", error);
       toast.error(
         error instanceof Error
           ? error.message
-          : "Failed to submit payment. Please try again."
+          : "Failed to create bid. Please try again."
       );
     }
   };
@@ -278,7 +301,7 @@ export default function CreateBidPage() {
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"
-          onClick={() => navigate("/dashboard/bids")}
+          onClick={() => navigate(user?.role === "shipper" ? "/dashboard/my-bids" : "/dashboard/bids")}
           className="p-2"
         >
           <ArrowLeft className="w-5 h-5" />
