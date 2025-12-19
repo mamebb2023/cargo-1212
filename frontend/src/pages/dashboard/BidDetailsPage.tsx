@@ -426,9 +426,9 @@ export default function BidDetailsPage() {
                 </span>
                 <div className="flex items-center gap-3">
                   <span className="flex flex-col md:flex-row text-gray-600">
-                    <strong>Offers Received:</strong> {bid.offers}
+                    <strong>Offers Received:</strong> {bid.offers ?? 0}
                   </span>
-                  {user?.role === "shipper" && bid.offers > 0 && (
+                  {user?.role === "shipper" && (bid.offers ?? 0) > 0 && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -611,26 +611,29 @@ export default function BidDetailsPage() {
                     Rate Carrier
                   </Button>
                 )}
-                {!isBidOwner && user?.role === "carrier" && bid.user && bid.selected_offer?.delivery_completed && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      // For carrier rating shipper
-                      setRatingTarget({
-                        id: bid.user?.id || 0,
-                        name:
-                          bid.user?.company_name ||
-                          bid.user?.full_name ||
-                          bid.shipperName ||
-                          "Shipper",
-                        role: "shipper",
-                      });
-                      setShowRatingModal(true);
-                    }}
-                  >
-                    Rate Shipper
-                  </Button>
-                )}
+                {!isBidOwner &&
+                  user?.role === "carrier" &&
+                  bid.user &&
+                  bid.selected_offer?.delivery_completed && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        // For carrier rating shipper
+                        setRatingTarget({
+                          id: bid.user?.id || 0,
+                          name:
+                            bid.user?.company_name ||
+                            bid.user?.full_name ||
+                            bid.shipperName ||
+                            "Shipper",
+                          role: "shipper",
+                        });
+                        setShowRatingModal(true);
+                      }}
+                    >
+                      Rate Shipper
+                    </Button>
+                  )}
               </div>
             </div>
           )}

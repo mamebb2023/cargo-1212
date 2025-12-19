@@ -39,7 +39,7 @@ export default function SubmitOfferPage() {
       try {
         setLoading(true);
         const response = await bidsApi.getBidDetails(parseInt(id));
-        setBid(response.data);
+        setBid(response.data as BackendBidDetail);
       } catch {
         toast.error("Failed to load bid details");
         navigate("/dashboard/bids");

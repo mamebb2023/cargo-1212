@@ -61,7 +61,13 @@ export default function BidDetailModal({ bid, onClose, onOpenBid }: Props) {
                 <strong>Created:</strong> {bid.created_at || "—"}
               </p>
               <p>
-                <strong>User:</strong> {bid.user || "—"}
+                <strong>User:</strong>{" "}
+                {bid.user
+                  ? bid.user.company_name ||
+                    bid.user.full_name ||
+                    bid.user.email ||
+                    "Unknown"
+                  : "—"}
               </p>
             </div>
             <div className="mt-4 flex justify-end gap-2">
@@ -78,4 +84,3 @@ export default function BidDetailModal({ bid, onClose, onOpenBid }: Props) {
     </AnimatePresence>
   );
 }
-

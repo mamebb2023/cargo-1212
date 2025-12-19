@@ -38,7 +38,12 @@ export default function SubmitAgainPage() {
         setStatus("rejected");
       } else if (hasPending) {
         setStatus("pending");
-      } else if (docs.length > 0 && hasApproved && !hasPending && !hasRejected) {
+      } else if (
+        docs.length > 0 &&
+        hasApproved &&
+        !hasPending &&
+        !hasRejected
+      ) {
         // All documents are approved but user.is_verified might not be updated yet
         setStatus("verified");
       } else {
@@ -60,7 +65,7 @@ export default function SubmitAgainPage() {
 
   const handleFileChange = (
     docId: number,
-    documentType: string,
+    _documentType: string,
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
@@ -94,7 +99,9 @@ export default function SubmitAgainPage() {
       setHasNewUpload(false);
       await loadDocuments();
     } catch (error: any) {
-      toast.error(error?.message || "Failed to upload documents. Please try again.");
+      toast.error(
+        error?.message || "Failed to upload documents. Please try again."
+      );
     } finally {
       setUploadingId(null);
       // reset inputs
@@ -104,14 +111,14 @@ export default function SubmitAgainPage() {
     }
   };
 
-  const hasDocuments = documents.length > 0;
-
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
         <FileText className="w-6 h-6 text-blue-600" />
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Resubmit Documents</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Resubmit Documents
+          </h1>
           <p className="text-gray-600">
             Your documents were not approved. Please review and submit again.
           </p>
@@ -134,7 +141,9 @@ export default function SubmitAgainPage() {
                 className="flex items-center justify-between gap-3 border border-gray-100 rounded-lg p-3"
               >
                 <div>
-                  <p className="font-medium text-gray-900">{doc.document_type}</p>
+                  <p className="font-medium text-gray-900">
+                    {doc.document_type}
+                  </p>
                   <p
                     className={`text-xs font-semibold ${
                       doc.status === "approved"
@@ -157,7 +166,9 @@ export default function SubmitAgainPage() {
                       ref={(el) => {
                         fileInputsRef.current[doc.id] = el;
                       }}
-                      onChange={(e) => handleFileChange(doc.id, doc.document_type, e)}
+                      onChange={(e) =>
+                        handleFileChange(doc.id, doc.document_type, e)
+                      }
                     />
                     {pendingUploads[doc.id] && (
                       <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 text-xs text-gray-700">
@@ -225,4 +236,3 @@ export default function SubmitAgainPage() {
     </div>
   );
 }
-

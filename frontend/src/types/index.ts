@@ -232,6 +232,7 @@ export interface AdminBid {
   offers_count?: number;
   lowest_offer?: string | null;
   created_at?: string;
+  deadline?: string;
   origin?: string;
   destination?: string;
   user?: {
