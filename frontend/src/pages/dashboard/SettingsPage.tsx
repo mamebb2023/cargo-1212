@@ -3,11 +3,11 @@ import { Lock, Bell, Trash2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/hooks/useAuth";
 import { toast } from "react-hot-toast";
 
 export default function SettingsPage() {
-  const { logout } = useAuth();
+  const { logout } = useAuthContext();
   const [passwords, setPasswords] = useState({
     current: "",
     new: "",

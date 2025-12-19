@@ -53,6 +53,7 @@ export interface BidDetail {
   shipperEmail?: string;
   bidFilesUrl?: string | null;
   selected_offer?: {
+    delivery_completed?: boolean;
     carrier: {
       id: number;
       company_name?: string;
@@ -89,6 +90,7 @@ export interface BackendBidDetail {
   bid_files_url?: string | null;
   cargoType?: string;
   selected_offer?: {
+    delivery_completed?: boolean;
     carrier: {
       id: number;
       company_name?: string;
@@ -186,6 +188,14 @@ export interface DashboardBidSummary {
   created_at: string;
   offers_count: number;
   lowest_offer?: string | null;
+  user: {
+    id: number;
+    full_name: string;
+    company_name: string | null;
+    email: string;
+    average_rating: number;
+    total_ratings: number;
+  };
 }
 
 export interface DashboardOverview {

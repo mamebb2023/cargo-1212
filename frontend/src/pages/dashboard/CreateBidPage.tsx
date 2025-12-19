@@ -6,14 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { ArrowLeft, CreditCard } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/hooks/useAuth";
 import { verificationApi, bidsApi } from "@/lib/api";
 import { paymentsApi } from "@/lib/api";
 import PaymentModal from "@/components/payments/PaymentModal";
 
 export default function CreateBidPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [verificationStatus, setVerificationStatus] = useState<
     "loading" | "verified" | "pending" | "rejected"
   >("loading");
@@ -55,7 +55,12 @@ export default function CreateBidPage() {
           setVerificationStatus("rejected");
         } else if (hasPending) {
           setVerificationStatus("pending");
-        } else if (docs.length > 0 && hasApproved && !hasPending && !hasRejected) {
+        } else if (
+          docs.length > 0 &&
+          hasApproved &&
+          !hasPending &&
+          !hasRejected
+        ) {
           // All documents are approved but user.is_verified might not be updated yet
           setVerificationStatus("verified");
         } else {
@@ -146,7 +151,9 @@ export default function CreateBidPage() {
       formDataPayload.append("payment_proof", file);
 
       await paymentsApi.createPayment(formDataPayload);
-      toast.success("Bid created and payment uploaded. Your bid will be reviewed.");
+      toast.success(
+        "Bid created and payment uploaded. Your bid will be reviewed."
+      );
       setPaymentModalOpen(false);
       navigate("/dashboard/my-bids");
     } catch (error: unknown) {
@@ -306,7 +313,13 @@ export default function CreateBidPage() {
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"
-          onClick={() => navigate(user?.role === "shipper" ? "/dashboard/my-bids" : "/dashboard/bids")}
+          onClick={() =>
+            navigate(
+              user?.role === "shipper"
+                ? "/dashboard/my-bids"
+                : "/dashboard/bids"
+            )
+          }
           className="p-2"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -322,7 +335,8 @@ export default function CreateBidPage() {
       {verificationStatus !== "verified" && (
         <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4">
           <p className="font-semibold">
-            You are not allowed to offer a bid before your documents are reviewed and approved.
+            You are not allowed to offer a bid before your documents are
+            reviewed and approved.
           </p>
           <p className="text-sm mt-1">
             Current status:{" "}

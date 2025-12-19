@@ -92,6 +92,7 @@ class BidListSerializer(serializers.ModelSerializer):
 
     offers_count = serializers.SerializerMethodField()
     lowest_offer = serializers.SerializerMethodField()
+    user = serializers.SerializerMethodField()
 
     class Meta:
         model = Bid
@@ -108,6 +109,7 @@ class BidListSerializer(serializers.ModelSerializer):
             "deadline",
             "offers_count",
             "lowest_offer",
+            "user",
             "created_at",
         ]
 
@@ -117,6 +119,18 @@ class BidListSerializer(serializers.ModelSerializer):
     def get_lowest_offer(self, obj):
         lowest = obj.lowest_offer
         return str(lowest) if lowest else None
+
+    def get_user(self, obj):
+        """Return shipper (user) information with ratings"""
+        user = obj.user
+        return {
+            'id': user.id,
+            'full_name': user.full_name,
+            'company_name': user.company_name,
+            'email': user.email,
+            'average_rating': float(user.average_rating),
+            'total_ratings': user.total_ratings,
+        }
 
 
 class BidDetailSerializer(serializers.ModelSerializer):
@@ -177,6 +191,7 @@ class BidDetailSerializer(serializers.ModelSerializer):
                 return {
                     "id": selected_offer.id,
                     "price": str(selected_offer.price),
+                    "delivery_completed": selected_offer.delivery_completed,
                     "carrier": {
                         "id": selected_offer.user.id,
                         "full_name": selected_offer.user.full_name,

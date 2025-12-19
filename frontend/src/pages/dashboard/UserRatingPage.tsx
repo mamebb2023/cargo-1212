@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UserRatingCard from "@/components/UserRatingCard";
 import { toast } from "react-hot-toast";
+import { API_BASE_URL } from "@/lib/api";
 
 export default function UserRatingPage() {
   const { id } = useParams<{ id: string }>();
@@ -20,7 +21,7 @@ export default function UserRatingPage() {
       const token = localStorage.getItem("access_token");
       
       const response = await fetch(
-        `http://localhost:8000/api/auth/users/${id}/rating/`,
+        `${API_BASE_URL}/auth/users/${id}/rating/`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

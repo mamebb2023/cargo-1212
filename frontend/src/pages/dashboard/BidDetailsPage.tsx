@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { bidsApi, paymentsApi, verificationApi } from "@/lib/api";
 import PaymentModal from "@/components/payments/PaymentModal";
-import { useAuthContext } from "@/context/AuthContext";
+import { useAuthContext } from "@/hooks/useAuth";
 import RatingModal from "@/components/RatingModal";
 import type { BidDetail, BackendBidDetail, LimitedBidDetail } from "@/types";
 
@@ -581,8 +581,8 @@ export default function BidDetailsPage() {
             </div>
           </div>
 
-          {/* Rating Section - Show for completed bids where user can rate the other party */}
-          {bid && bid.status === "completed" && (
+          {/* Rating Section - Shippers can rate carriers for completed/closed bids, carriers can rate shippers only after delivery completion */}
+          {bid && (bid.status === "completed" || bid.status === "closed") && (
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Rate Your Experience
@@ -611,7 +611,7 @@ export default function BidDetailsPage() {
                     Rate Carrier
                   </Button>
                 )}
-                {!isBidOwner && user?.role === "carrier" && bid.user && (
+                {!isBidOwner && user?.role === "carrier" && bid.user && bid.selected_offer?.delivery_completed && (
                   <Button
                     variant="outline"
                     onClick={() => {

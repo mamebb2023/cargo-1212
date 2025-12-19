@@ -8,7 +8,7 @@ import {
   Activity,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { usersApi } from "@/lib/api";
 import type { DashboardOverview, DashboardStats } from "@/types";
@@ -27,7 +27,7 @@ const formatDate = (value?: string) => {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const isCarrier = user?.role === "carrier";
 
   const [loading, setLoading] = useState(true);

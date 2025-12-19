@@ -222,7 +222,7 @@ class AdminPaymentListView(generics.ListAPIView):
         if self.request.user.role != "admin":
             return Payment.objects.none()
 
-        queryset = Payment.objects.all().order_by("-created_at")
+        queryset = Payment.objects.select_related('user').all().order_by("-created_at")
 
         status_filter = self.request.query_params.get("status")
         if status_filter:

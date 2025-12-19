@@ -1,12 +1,12 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/hooks/useAuth";
 
 export default function AdminRoute({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, user, loading } = useAuthContext();
   const location = useLocation();
 
   if (loading) return null;

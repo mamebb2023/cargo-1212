@@ -4,6 +4,7 @@ import { Star, TrendingUp, Award } from "lucide-react";
 import { RatingDisplay } from "@/components/ui/rating";
 import { Button } from "@/components/ui/button";
 import { toast } from "react-hot-toast";
+import { API_BASE_URL } from "@/lib/api";
 
 interface TopRatedUser {
   id: number;
@@ -29,9 +30,9 @@ export default function TopRatedCarriersPage() {
   const fetchTopRatedCarriers = async () => {
     try {
       const token = localStorage.getItem("access_token");
-      
+
       const response = await fetch(
-        "http://localhost:8000/api/auth/users/top-rated/?role=carrier",
+        `${API_BASE_URL}/auth/users/top-rated/?role=carrier`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -66,7 +67,9 @@ export default function TopRatedCarriersPage() {
       <div className="flex items-center gap-3">
         <Award className="w-8 h-8 text-yellow-500" />
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Top Rated Carriers</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Top Rated Carriers
+          </h1>
           <p className="text-gray-600 mt-1">
             Discover the best-performing carriers on our platform
           </p>
@@ -82,7 +85,9 @@ export default function TopRatedCarriersPage() {
             </div>
             <div>
               <p className="text-sm text-gray-600">Total Carriers</p>
-              <p className="text-2xl font-bold text-gray-900">{carriers.length}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {carriers.length}
+              </p>
             </div>
           </div>
         </div>
@@ -223,4 +228,3 @@ export default function TopRatedCarriersPage() {
     </div>
   );
 }
-

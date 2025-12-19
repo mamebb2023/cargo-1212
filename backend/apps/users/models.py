@@ -112,11 +112,12 @@ class User(AbstractUser):
         """Update average rating and total ratings count"""
         from apps.ratings.models import Rating
 
-        ratings = Rating.objects.filter(carrier=self)
-        if ratings.exists():
-            self.total_ratings = ratings.count()
+        # Get all ratings received by this user (as ratee)
+        ratings_received = Rating.objects.filter(ratee=self)
+        if ratings_received.exists():
+            self.total_ratings = ratings_received.count()
             self.average_rating = (
-                ratings.aggregate(models.Avg("score"))["score__avg"] or 0.00
+                ratings_received.aggregate(models.Avg("score"))["score__avg"] or 0.00
             )
         else:
             self.total_ratings = 0

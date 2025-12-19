@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { verificationApi } from "@/lib/api";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/hooks/useAuth";
 import { FileText, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -10,7 +10,7 @@ type VerificationStatus = "loading" | "pending" | "rejected" | "verified";
 
 export default function SubmitAgainPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [status, setStatus] = useState<VerificationStatus>("loading");
   const [documents, setDocuments] = useState<
     Array<{ id: number; document_type: string; status: string }>

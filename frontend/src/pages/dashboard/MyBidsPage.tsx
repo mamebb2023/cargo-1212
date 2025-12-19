@@ -10,13 +10,13 @@ import {
   XCircle,
   Loader2,
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/hooks/useAuth";
 import { bidsApi } from "@/lib/api";
 import type { BackendBidDetail } from "@/types";
 
 export default function MyBidsPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const isShipper = user?.role === "shipper";
   const isAdmin = user?.role === "admin";
   const [loading, setLoading] = useState(true);

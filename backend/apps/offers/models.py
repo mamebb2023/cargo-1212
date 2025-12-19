@@ -80,13 +80,23 @@ class Offer(models.Model):
         self.bid.save()
         print(f"DEBUG: After complete_bid - bid status: {self.bid.status}")
 
-        # Create notification for the carrier
+        # Create notifications for both parties
         from apps.notifications.models import Notification
 
+        # Notify the carrier
         Notification.create_notification(
             user=self.user,
             title="Delivery Completed",
-            message=f"The delivery for '{self.bid.title}' has been marked as completed by the shipper.",
+            message=f"The delivery for '{self.bid.title}' has been marked as completed by the shipper. You can now rate your experience.",
+            notification_type="delivery_completed",
+            related_bid=self.bid,
+        )
+
+        # Notify the shipper
+        Notification.create_notification(
+            user=self.bid.user,
+            title="Delivery Marked as Completed",
+            message=f"You have successfully marked the delivery for '{self.bid.title}' as completed. You can now rate the carrier.",
             notification_type="delivery_completed",
             related_bid=self.bid,
         )

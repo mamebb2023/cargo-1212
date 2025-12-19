@@ -10,8 +10,11 @@ import {
   API_BASE_URL,
 } from "@/lib/api";
 import Loading from "@/components/ui/loading";
-import type { VerificationDocument as ApiVerificationDocument } from "@/types";
-import { useAuth } from "@/hooks/useAuth";
+import type {
+  VerificationDocument as ApiVerificationDocument,
+  AdminBid,
+} from "@/types";
+import { useAuthContext } from "@/hooks/useAuth";
 import {
   FileText,
   Download,
@@ -63,7 +66,7 @@ type AdminPayment = {
 
 export default function ToReviewPage() {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading } = useAuthContext();
   const isAdmin = user?.role === "admin";
   const [selectedImage, setSelectedImage] = useState<{
     url: string;
@@ -79,7 +82,7 @@ export default function ToReviewPage() {
   );
   const [payments, setPayments] = useState<AdminPayment[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
-  const [pendingBids, setPendingBids] = useState<any[]>([]);
+  const [pendingBids, setPendingBids] = useState<AdminBid[]>([]);
   const [isLoadingBids, setIsLoadingBids] = useState(false);
 
   // Helper function to check if file is an image
@@ -553,7 +556,7 @@ export default function ToReviewPage() {
                               </span>
                             </div>
                             <p className="text-sm text-gray-600">
-                              {pay.user?.email || "No email"}
+                              {pay.user?.email || pay.user_name || "No email"}
                             </p>
                             <p className="text-xs text-gray-500 mt-1">
                               Submitted on{" "}
@@ -680,8 +683,8 @@ export default function ToReviewPage() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <p className="font-medium text-gray-900">
-                                {(bid as any).user?.full_name ||
-                                  (bid as any).user?.company_name ||
+                                {bid.user?.full_name ||
+                                  bid.user?.company_name ||
                                   "Unknown User"}
                               </p>
                               <span className="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-700">
@@ -689,7 +692,7 @@ export default function ToReviewPage() {
                               </span>
                             </div>
                             <p className="text-sm text-gray-600">
-                              {(bid as any).user?.email || "No email"}
+                              {bid.user?.email || "No email"}
                             </p>
                             <p className="text-xs text-gray-500 mt-1">
                               Submitted on{" "}
@@ -710,8 +713,8 @@ export default function ToReviewPage() {
                                 {bid.title}
                               </p>
                               <p className="text-xs text-gray-600">
-                                Route: {(bid as any).origin || "—"} →{" "}
-                                {(bid as any).destination || "—"} | Budget:{" "}
+                                Route: {bid.origin || "—"} →{" "}
+                                {bid.destination || "—"} | Budget:{" "}
                                 {bid.budget || "—"}
                               </p>
                             </div>
@@ -1097,7 +1100,7 @@ export default function ToReviewPage() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">
-                        {pay.user_name || pay.user?.full_name || "Unknown User"}
+                        {pay.user?.full_name || pay.user_name || "Unknown User"}
                       </p>
                       <p className="text-xs text-gray-600">
                         {pay.user?.email || "No email"}

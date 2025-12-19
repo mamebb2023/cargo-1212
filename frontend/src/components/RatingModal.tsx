@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { Button } from "./ui/button";
 import { StarRating } from "./ui/rating";
 import { toast } from "react-hot-toast";
+import { API_BASE_URL } from "@/lib/api";
 
 interface RatingModalProps {
   isOpen: boolean;
@@ -45,7 +46,7 @@ export default function RatingModal({
       const token = localStorage.getItem("access_token");
 
       const response = await fetch(
-        "http://localhost:8000/api/ratings/reviews/create/",
+        `${API_BASE_URL}/ratings/reviews/create/`,
         {
           method: "POST",
           headers: {
@@ -61,12 +62,13 @@ export default function RatingModal({
         }
       );
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to submit rating");
+        throw new Error(data.message || "Failed to submit rating");
       }
 
-      toast.success("Rating submitted successfully!");
+      toast.success(data.message || "Rating submitted successfully!");
       onSuccess?.();
       onClose();
       setRating(0);

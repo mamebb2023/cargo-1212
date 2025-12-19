@@ -75,11 +75,27 @@ def create_bid_review_view(request):
     score = request.data.get("rating") or request.data.get("score")
     comment = request.data.get("comment", "")
 
-    if not bid_id or not ratee_id or not score:
+    if not bid_id or not ratee_id or score is None:
         return Response(
             api_response(
                 success=False, message="Bid ID, ratee ID, and rating score are required"
             ),
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Validate score
+    try:
+        score_int = int(score)
+        if score_int < 1 or score_int > 5:
+            return Response(
+                api_response(
+                    success=False, message="Rating score must be between 1 and 5"
+                ),
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+    except (ValueError, TypeError):
+        return Response(
+            api_response(success=False, message="Invalid rating score format"),
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -101,13 +117,13 @@ def create_bid_review_view(request):
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    # Check if bid is completed
+    # Check if bid is completed or closed (both indicate the transaction is done)
     print(f"DEBUG: Bid status is {bid.status}, selected_offer: {bid.selected_offer}")
-    if bid.status != "completed":
+    if bid.status not in ["completed", "closed"]:
         return Response(
             api_response(
                 success=False,
-                message=f"You can only rate completed bids (current status: {bid.status})",
+                message=f"You can only rate completed or closed bids (current status: {bid.status})",
             ),
             status=status.HTTP_400_BAD_REQUEST,
         )
@@ -139,23 +155,33 @@ def create_bid_review_view(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    # Check if rating already exists
-    if Rating.objects.filter(rater=request.user, ratee=ratee, bid=bid).exists():
+    # Check if rating already exists - block duplicate ratings
+    existing_rating = Rating.objects.filter(
+        rater=request.user, ratee=ratee, bid=bid
+    ).first()
+    if existing_rating:
         return Response(
             api_response(
-                success=False, message="You have already rated this user for this bid"
+                success=False,
+                message="You have already rated this user for this bid. Each user can only rate once per bid."
             ),
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     # Create the rating
-    rating = Rating.objects.create(
-        rater=request.user,
-        ratee=ratee,
-        bid=bid,
-        score=int(score),
-        comment=comment,
-    )
+    try:
+        rating = Rating.objects.create(
+            rater=request.user,
+            ratee=ratee,
+            bid=bid,
+            score=int(score),
+            comment=comment,
+        )
+    except Exception as e:
+        return Response(
+            api_response(success=False, message=f"Failed to create rating: {str(e)}"),
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     # Create notification
     Notification.create_notification(

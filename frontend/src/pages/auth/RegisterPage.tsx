@@ -10,13 +10,13 @@ import { registerSchema, type RegisterFormData } from "@/lib/validations";
 import { getCountries, getCitiesByCountry } from "@/constant";
 import { authApi } from "@/lib/api";
 import { Upload, FileText, X } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/hooks/useAuth";
 
 type RegistrationStep = "form" | "role" | "documents";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { setSession } = useAuth();
+  const { setSession } = useAuthContext();
   const [step, setStep] = useState<RegistrationStep>("form");
   const [formData, setFormData] = useState({
     firstName: "",

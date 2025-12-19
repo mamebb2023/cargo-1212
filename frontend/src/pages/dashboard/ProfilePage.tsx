@@ -4,7 +4,7 @@ import { User as UserIcon, Mail, Phone, MapPin, Factory } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/hooks/useAuth";
 import { authApi } from "@/lib/api";
 import { verificationApi } from "@/lib/api";
 import { toast } from "react-hot-toast";
@@ -24,7 +24,7 @@ type ProfileForm = {
 };
 
 export default function ProfilePage() {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser } = useAuthContext();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -75,7 +75,12 @@ export default function ProfilePage() {
           setVerificationStatus("rejected");
         } else if (hasPending) {
           setVerificationStatus("pending");
-        } else if (docs.length > 0 && hasApproved && !hasPending && !hasRejected) {
+        } else if (
+          docs.length > 0 &&
+          hasApproved &&
+          !hasPending &&
+          !hasRejected
+        ) {
           // All documents are approved but user.is_verified might not be updated yet
           setVerificationStatus("verified");
         } else {

@@ -5,14 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Truck, DollarSign, Calendar } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/hooks/useAuth";
 import { bidsApi, verificationApi, offersApi } from "@/lib/api";
 import type { BackendBidDetail } from "@/types";
 
 export default function SubmitOfferPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [verificationStatus, setVerificationStatus] = useState<
     "loading" | "verified" | "pending" | "rejected"
   >("loading");

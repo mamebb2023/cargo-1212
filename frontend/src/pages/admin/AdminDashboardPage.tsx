@@ -210,7 +210,15 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded">
+                    <span
+                      className={`px-3 py-1 text-xs font-semibold rounded-full uppercase ${
+                        user.role === "carrier"
+                          ? "bg-blue-100 text-blue-700"
+                          : user.role === "shipper"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
                       {user.role}
                     </span>
                     <span
@@ -265,11 +273,36 @@ export default function AdminDashboardPage() {
                     onClick={() => setSelectedBid(bid)}
                     className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
                   >
-                    <h3 className="font-medium text-gray-900 mb-1 line-clamp-1">
-                      {bid.title}
-                    </h3>
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-medium text-gray-900 line-clamp-1 flex-1">
+                        {bid.title}
+                      </h3>
+                      <span
+                        className={`px-2 py-1 text-xs font-semibold rounded border ml-2 ${
+                          bid.status === "active"
+                            ? "bg-green-100 text-green-700 border-green-300"
+                            : bid.status === "closed"
+                            ? "bg-red-100 text-red-700 border-red-300"
+                            : bid.status === "approved"
+                            ? "bg-blue-100 text-blue-700 border-blue-300"
+                            : "bg-gray-100 text-gray-700 border-gray-300"
+                        }`}
+                      >
+                        {bid.status
+                          ? bid.status.charAt(0).toUpperCase() +
+                            bid.status.slice(1)
+                          : "Active"}
+                      </span>
+                    </div>
+                    {(bid.origin || bid.destination) && (
+                      <p className="text-sm text-gray-600 mb-1">
+                        {bid.origin && bid.destination
+                          ? `${bid.origin} → ${bid.destination}`
+                          : bid.origin || bid.destination}
+                      </p>
+                    )}
                     <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                      {bid.description}
+                      {bid.description || "No description available"}
                     </p>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <Package className="w-4 h-4" />

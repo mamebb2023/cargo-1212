@@ -10,7 +10,7 @@ import {
   LogOut,
   Bell,
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/hooks/useAuth";
 import { notificationsApi } from "@/lib/api";
 
 export default function DashboardLayout() {
@@ -18,13 +18,13 @@ export default function DashboardLayout() {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout } = useAuthContext();
 
   const initials =
     (user?.full_name ?? "")
       .split(" ")
       .filter(Boolean)
-      .map((part) => part[0])
+      .map((part: string) => part[0])
       .slice(0, 2)
       .join("") || "CB";
 
@@ -35,8 +35,10 @@ export default function DashboardLayout() {
     try {
       const res = await notificationsApi.getUnreadCount();
       const count =
-        res && typeof res.data?.unread_count === "number"
-          ? res.data.unread_count
+        res &&
+        res.data &&
+        typeof (res.data as { unread_count: number }).unread_count === "number"
+          ? (res.data as { unread_count: number }).unread_count
           : 0;
       setUnreadCount(count);
     } catch {
@@ -45,8 +47,10 @@ export default function DashboardLayout() {
   }, []);
 
   useEffect(() => {
-    void fetchUnread();
-  }, [fetchUnread]);
+    // Fetch once after mount, but avoid setState directly in effect body
+    fetchUnread();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
   useEffect(() => {
     const handleUpdated = () => void fetchUnread();
@@ -63,17 +67,20 @@ export default function DashboardLayout() {
       void fetchUnread();
     }, 15000);
 
-    // When user views notifications page, optimistically clear
-    if (location.pathname.startsWith("/dashboard/notifications")) {
-      setUnreadCount(0);
-    }
-
     return () => {
       window.removeEventListener("notifications:updated", handleUpdated);
       document.removeEventListener("visibilitychange", handleVisibility);
       window.clearInterval(intervalId);
     };
-  }, [location.pathname, fetchUnread]);
+  }, [fetchUnread]);
+
+  // When user views notifications page, optimistically clear
+  // Clear unread notifications count when user navigates to notifications page
+  useEffect(() => {
+    if (location.pathname.startsWith("/dashboard/notifications")) {
+      setTimeout(() => setUnreadCount(0), 0);
+    }
+  }, [location.pathname]);
 
   const menuItems = [
     {
@@ -92,6 +99,11 @@ export default function DashboardLayout() {
       path: "/dashboard/my-bids",
     },
     {
+      icon: FileText,
+      label: "Offers",
+      path: "/dashboard/offers",
+    },
+    {
       icon: Bell,
       label: "Notifications",
       path: "/dashboard/notifications",
@@ -106,6 +118,7 @@ export default function DashboardLayout() {
     icon: typeof LayoutDashboard;
     label: string;
     path: string;
+    showDot?: boolean;
   }[];
 
   const isActive = (path: string) => {
@@ -123,11 +136,6 @@ export default function DashboardLayout() {
           sidebarOpen ? "w-64" : "w-16"
         }`}
       >
-        {isAdmin && (
-          <div className="px-4 py-2 bg-red-600 text-white text-xs font-semibold">
-            Admin View
-          </div>
-        )}
         {/* Logo Section */}
         <div className="h-16 border-b border-gray-200 flex items-center justify-between px-4 shrink-0">
           <div className="flex items-center gap-2 flex-1">
@@ -205,12 +213,12 @@ export default function DashboardLayout() {
                   <span className="text-sm font-medium">
                     {user?.full_name || "User"}{" "}
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium mt-1 ${
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium mt-1 border ${
                         user?.role === "carrier"
-                          ? "bg-blue-100 text-blue-700"
+                          ? "bg-blue-100 text-blue-700 border-blue-300"
                           : user?.role === "shipper"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-700"
+                          ? "bg-green-100 text-green-700 border-green-300"
+                          : "bg-red-100 text-red-700 border-red-500"
                       }`}
                     >
                       {user?.role === "carrier"

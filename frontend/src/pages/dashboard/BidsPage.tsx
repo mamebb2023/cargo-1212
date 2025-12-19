@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Search, Filter, Package, Plus } from "lucide-react";
 import { bidsApi, paymentsApi } from "@/lib/api";
 import { toast } from "react-hot-toast";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/hooks/useAuth";
+import { RatingDisplay } from "@/components/ui/rating";
 import type { DashboardBidSummary } from "@/types";
 
 type ProcessedBid = DashboardBidSummary & {
@@ -23,7 +24,7 @@ type ProcessedBid = DashboardBidSummary & {
 
 export default function BidsPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -60,10 +61,7 @@ export default function BidsPage() {
       // Create a set of bid IDs that the user has approved payments for
       const paidBidIds = new Set<number>();
       userPayments.forEach((payment) => {
-        if (
-          payment.bid &&
-          payment.status === "approved"
-        ) {
+        if (payment.bid && payment.status === "approved") {
           // Handle both object and number bid references
           let bidId: number;
           if (typeof payment.bid === "object" && payment.bid?.id) {
@@ -454,23 +452,46 @@ export default function BidsPage() {
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                        <span className="inline-flex items-center gap-2">
-                          {bid.title}
-                          <span
-                            className={`px-2 py-0.5 text-[11px] font-semibold rounded ${
-                              bid.status === "approved"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-blue-100 text-blue-700"
-                            }`}
-                          >
-                            {formatStatusLabel(bid.status)}
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          <span className="inline-flex items-center gap-2">
+                            {bid.title}
+                            <span
+                              className={`px-2 py-0.5 text-[11px] font-semibold rounded ${
+                                bid.status === "approved"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-blue-100 text-blue-700"
+                              }`}
+                            >
+                              {formatStatusLabel(bid.status)}
+                            </span>
                           </span>
-                        </span>
-                      </h3>
-                      <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                        {bid.description}
-                      </p>
+                          <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                            {bid.description}
+                          </p>
+                        </h3>
+                        {/* Shipper Rating */}
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-gray-400">
+                            Company Rating
+                          </span>
+                          <div className="flex items-center  gap-2">
+                            <RatingDisplay
+                              rating={Number(bid.user.average_rating) || 0}
+                              showText={false}
+                              size="sm"
+                            />
+                            <span className="text-sm font-medium text-gray-900">
+                              {(Number(bid.user.average_rating) || 0).toFixed(
+                                1
+                              )}
+                            </span>
+                          </div>
+                          <span className="text-xs text-gray-600 self-end">
+                            {bid.user.company_name || bid.user.full_name}
+                          </span>
+                        </div>
+                      </div>
 
                       {/* Show additional details only if paid */}
                       {bid.isPaid ? (
@@ -504,23 +525,25 @@ export default function BidsPage() {
                           )}
                         </div>
                       ) : (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                          <div className="flex items-center gap-2 text-blue-700 text-sm">
-                            <svg
-                              className="w-4 h-4"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            <span>
-                              Pay ETB 200 to unlock full bid details and submit
-                              offers
-                            </span>
+                        <div className="flex-center">
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2 text-blue-700 text-sm">
+                              <svg
+                                className="w-4 h-4"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              <span>
+                                Pay ETB 200 to unlock full bid details and
+                                submit offers
+                              </span>
+                            </div>
                           </div>
                         </div>
                       )}
