@@ -10,6 +10,7 @@ import { useAuthContext } from "@/hooks/useAuth";
 import { verificationApi, bidsApi } from "@/lib/api";
 import { paymentsApi } from "@/lib/api";
 import PaymentModal from "@/components/payments/PaymentModal";
+import { ETHIOPIAN_LOCATIONS } from "@/constant";
 
 export default function CreateBidPage() {
   const navigate = useNavigate();
@@ -31,7 +32,6 @@ export default function CreateBidPage() {
     budget: "",
     cpoAmount: "",
     deadline: "",
-    status: "Open",
     specialRequirements: "",
   });
 
@@ -101,7 +101,6 @@ export default function CreateBidPage() {
       "budget",
       "cpoAmount",
       "deadline",
-      "status",
     ];
 
     const missingFields = requiredFields.filter(
@@ -247,10 +246,6 @@ export default function CreateBidPage() {
                     </p>
                     <p className="text-gray-900">{formData.deadline}</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Status</p>
-                    <p className="text-gray-900">{formData.status}</p>
-                  </div>
                   {formData.specialRequirements && (
                     <div className="col-span-2">
                       <p className="text-sm font-medium text-gray-500">
@@ -343,7 +338,7 @@ export default function CreateBidPage() {
             {verificationStatus === "loading"
               ? "Checking..."
               : verificationStatus === "rejected"
-              ? "Rejected - please resubmit your documents."
+              ? "Rejected - Go to settings and resubmit your documents."
               : "Pending review."}
           </p>
         </div>
@@ -388,28 +383,38 @@ export default function CreateBidPage() {
               <Label htmlFor="origin">
                 Origin <span className="text-red-500">*</span>
               </Label>
-              <Input
+              <Select
                 id="origin"
-                type="text"
-                placeholder="e.g., Addis Ababa"
                 value={formData.origin}
                 onChange={(e) => handleChange("origin", e.target.value)}
                 required
-              />
+              >
+                <option value="">Select origin city</option>
+                {ETHIOPIAN_LOCATIONS.map((location) => (
+                  <option key={location} value={location}>
+                    {location}
+                  </option>
+                ))}
+              </Select>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="destination">
                 Destination <span className="text-red-500">*</span>
               </Label>
-              <Input
+              <Select
                 id="destination"
-                type="text"
-                placeholder="e.g., Dire Dawa"
                 value={formData.destination}
                 onChange={(e) => handleChange("destination", e.target.value)}
                 required
-              />
+              >
+                <option value="">Select destination city</option>
+                {ETHIOPIAN_LOCATIONS.map((location) => (
+                  <option key={location} value={location}>
+                    {location}
+                  </option>
+                ))}
+              </Select>
             </div>
           </div>
 
@@ -473,35 +478,17 @@ export default function CreateBidPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="deadline">
-                Deadline <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="deadline"
-                type="date"
-                value={formData.deadline}
-                onChange={(e) => handleChange("deadline", e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="status">
-                Status <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                id="status"
-                value={formData.status}
-                onChange={(e) => handleChange("status", e.target.value)}
-                required
-              >
-                <option value="Open">Open</option>
-                <option value="Assigned">Assigned</option>
-                <option value="Closed">Closed</option>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="deadline">
+              Deadline <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="deadline"
+              type="date"
+              value={formData.deadline}
+              onChange={(e) => handleChange("deadline", e.target.value)}
+              required
+            />
           </div>
 
           <div className="space-y-2">

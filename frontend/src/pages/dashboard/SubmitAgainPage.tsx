@@ -98,9 +98,11 @@ export default function SubmitAgainPage() {
       setPendingUploads({});
       setHasNewUpload(false);
       await loadDocuments();
-    } catch (error: any) {
+    } catch (error) {
       toast.error(
-        error?.message || "Failed to upload documents. Please try again."
+        error instanceof Error
+          ? error.message
+          : "Failed to upload documents. Please try again."
       );
     } finally {
       setUploadingId(null);
@@ -112,20 +114,20 @@ export default function SubmitAgainPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <FileText className="w-6 h-6 text-blue-600" />
+    <div className="max-w-3xl mx-auto space-y-6 px-4 sm:px-0">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <FileText className="w-6 h-6 text-blue-600 shrink-0" />
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             Resubmit Documents
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-sm sm:text-base">
             Your documents were not approved. Please review and submit again.
           </p>
         </div>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
+      <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 space-y-4">
         <div className="flex items-center gap-2">
           <RefreshCw className="w-4 h-4 text-blue-600" />
           <p className="text-sm text-gray-700">
@@ -138,7 +140,7 @@ export default function SubmitAgainPage() {
             {documents.map((doc) => (
               <div
                 key={doc.id}
-                className="flex items-center justify-between gap-3 border border-gray-100 rounded-lg p-3"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-gray-100 rounded-lg p-3 sm:p-4"
               >
                 <div>
                   <p className="font-medium text-gray-900">
@@ -158,7 +160,7 @@ export default function SubmitAgainPage() {
                   </p>
                 </div>
                 {doc.status !== "approved" && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
                     <input
                       type="file"
                       accept="image/*,.pdf"
@@ -171,11 +173,20 @@ export default function SubmitAgainPage() {
                       }
                     />
                     {pendingUploads[doc.id] && (
-                      <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 text-xs text-gray-700">
-                        <FileText className="w-4 h-4 text-gray-500" />
-                        <span className="truncate max-w-[120px]">
-                          {pendingUploads[doc.id].name}
-                        </span>
+                      <div className="flex items-center gap-3 px-3 sm:px-4 py-2 rounded-lg bg-blue-50 border border-blue-200 text-sm w-full">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-blue-100 flex items-center justify-center shrink-0">
+                            <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-blue-900 truncate text-xs">
+                              {pendingUploads[doc.id].name}
+                            </p>
+                            <p className="text-blue-600 text-xs hidden sm:block">
+                              Ready to upload
+                            </p>
+                          </div>
+                        </div>
                         <button
                           type="button"
                           onClick={() =>
@@ -185,11 +196,12 @@ export default function SubmitAgainPage() {
                               return next;
                             })
                           }
-                          className="text-red-500 hover:text-red-600"
+                          className="w-6 h-6 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center shrink-0 transition-colors touch-manipulation"
+                          title="Remove file"
                         >
-                          <Loader2 className="w-4 h-4 rotate-90 opacity-0" />
-                          {/* visually hidden icon placeholder to keep layout */}
-                          ×
+                          <span className="text-red-600 text-sm font-medium">
+                            ×
+                          </span>
                         </button>
                       </div>
                     )}
@@ -220,15 +232,20 @@ export default function SubmitAgainPage() {
           </p>
         )}
 
-        <div className="flex gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <Button
             variant="secondary"
             disabled={!hasNewUpload}
             onClick={handleUploadAll}
+            className="w-full sm:w-auto"
           >
             Upload
           </Button>
-          <Button variant="outline" onClick={() => navigate(-1)}>
+          <Button
+            variant="outline"
+            onClick={() => navigate(-1)}
+            className="w-full sm:w-auto"
+          >
             Back
           </Button>
         </div>

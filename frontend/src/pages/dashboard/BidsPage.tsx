@@ -226,10 +226,10 @@ export default function BidsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Transport Bids</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Transport Bids</h1>
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">
             Browse freight transport opportunities posted by shippers. Submit
             competitive offers to win contracts.
           </p>
@@ -238,7 +238,7 @@ export default function BidsPage() {
           <Button
             variant="secondary"
             onClick={() => navigate("/dashboard/bids/create")}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-full sm:w-auto self-start"
           >
             <Plus className="w-4 h-4" />
             Create a Bid
@@ -448,111 +448,111 @@ export default function BidsPage() {
               filteredBids.map((bid) => (
                 <div
                   key={bid.id}
-                  className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
+                  className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow"
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between gap-4 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          <span className="inline-flex items-center gap-2">
-                            {bid.title}
-                            <span
-                              className={`px-2 py-0.5 text-[11px] font-semibold rounded ${
-                                bid.status === "approved"
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-blue-100 text-blue-700"
-                              }`}
-                            >
-                              {formatStatusLabel(bid.status)}
-                            </span>
+                  <div className="flex flex-col gap-4">
+                    {/* Header Row: Title | Rating | Status */}
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-lg font-semibold text-gray-900 truncate flex-1">
+                        {bid.title}
+                      </h3>
+
+                      {/* Company Rating - positioned between title and status */}
+                      <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                        <div className="flex items-center gap-2">
+                          <RatingDisplay
+                            rating={Number(bid.user.average_rating) || 0}
+                            showText={false}
+                            size="sm"
+                          />
+                          <span className="text-sm font-medium text-gray-900">
+                            {(Number(bid.user.average_rating) || 0).toFixed(1)}
                           </span>
-                          <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                            {bid.description}
-                          </p>
-                        </h3>
-                        {/* Shipper Rating */}
-                        <div className="flex flex-col gap-1">
-                          <span className="text-xs text-gray-400">
-                            Company Rating
-                          </span>
-                          <div className="flex items-center  gap-2">
-                            <RatingDisplay
-                              rating={Number(bid.user.average_rating) || 0}
-                              showText={false}
-                              size="sm"
-                            />
-                            <span className="text-sm font-medium text-gray-900">
-                              {(Number(bid.user.average_rating) || 0).toFixed(
-                                1
-                              )}
-                            </span>
+                        </div>
+                        <span className="text-xs text-gray-600">
+                          {bid.user.company_name || bid.user.full_name}
+                        </span>
+                      </div>
+
+                      <span
+                        className={`px-2 py-1 text-xs font-semibold rounded whitespace-nowrap ${
+                          bid.status === "approved"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-blue-100 text-blue-700"
+                        }`}
+                      >
+                        {formatStatusLabel(bid.status)}
+                      </span>
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {bid.description}
+                    </p>
+
+                    {/* Show additional details only if paid */}
+                    {bid.isPaid ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
+                          <div className="flex items-center gap-2">
+                            <strong className="text-gray-900 text-xs">Route:</strong>
+                            <span className="truncate">{bid.origin} → {bid.destination}</span>
                           </div>
-                          <span className="text-xs text-gray-600 self-end">
-                            {bid.user.company_name || bid.user.full_name}
+                          <div className="flex items-center gap-2">
+                            <strong className="text-gray-900 text-xs">Cargo:</strong>
+                            <span className="truncate">{bid.cargoType} ({bid.weight})</span>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm text-gray-500">
+                          <div>
+                            <strong className="text-xs">Budget:</strong>
+                            <div className="text-gray-900">{bid.budget}</div>
+                          </div>
+                          <div>
+                            <strong className="text-xs">Deadline:</strong>
+                            <div className="text-gray-900">{bid.deadline}</div>
+                          </div>
+                          <div className="col-span-2 sm:col-span-1">
+                            <strong className="text-xs">Offers:</strong>
+                            <div className="text-gray-900">
+                              {bid.offers === 0 ? "No offers" : bid.offers}
+                            </div>
+                          </div>
+                        </div>
+                        {bid.lowestOffer && (
+                          <div className="text-sm text-green-600 font-semibold bg-green-50 px-3 py-2 rounded-lg">
+                            <strong>Lowest Offer:</strong> {bid.lowestOffer}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-blue-700 text-sm">
+                          <svg
+                            className="w-4 h-4 flex-shrink-0"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          <span>
+                            Pay ETB 200 to unlock full bid details and submit offers
                           </span>
                         </div>
                       </div>
+                    )}
 
-                      {/* Show additional details only if paid */}
-                      {bid.isPaid ? (
-                        <div className="space-y-2">
-                          <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                            <span>
-                              <strong className="text-gray-900">Route:</strong>{" "}
-                              {bid.origin} → {bid.destination}
-                            </span>
-                            <span>
-                              <strong className="text-gray-900">Cargo:</strong>{" "}
-                              {bid.cargoType} ({bid.weight})
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                            <span>
-                              <strong>Budget:</strong> {bid.budget}
-                            </span>
-                            <span>
-                              <strong>Deadline:</strong> {bid.deadline}
-                            </span>
-                            <span>
-                              <strong>Offers:</strong>{" "}
-                              {bid.offers === 0 ? "No offers" : bid.offers}
-                            </span>
-                          </div>
-                          {bid.lowestOffer && (
-                            <div className="text-sm text-green-600 font-semibold">
-                              <strong>Lowest Offer:</strong> {bid.lowestOffer}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="flex-center">
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                            <div className="flex items-center gap-2 text-blue-700 text-sm">
-                              <svg
-                                className="w-4 h-4"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                              <span>
-                                Pay ETB 200 to unlock full bid details and
-                                submit offers
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-2 min-w-[140px]">
+                    {/* Action Button */}
+                    <div className="flex justify-end pt-2 border-t border-gray-100">
                       <Button
                         variant="secondary"
                         size="sm"
                         onClick={() => navigate(`/dashboard/bids/${bid.id}`)}
+                        className="w-full sm:w-auto"
                       >
                         View Details
                       </Button>

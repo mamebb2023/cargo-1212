@@ -85,6 +85,23 @@ export default function ToReviewPage() {
   const [pendingBids, setPendingBids] = useState<AdminBid[]>([]);
   const [isLoadingBids, setIsLoadingBids] = useState(false);
 
+  // Helper function to truncate long file names
+  const truncateFileName = (
+    fileName: string,
+    maxLength: number = 25
+  ): string => {
+    if (fileName.length <= maxLength) return fileName;
+    const extension = fileName.split(".").pop();
+    const nameWithoutExt = fileName.slice(0, fileName.lastIndexOf("."));
+    const truncatedName = nameWithoutExt.slice(
+      0,
+      maxLength - 3 - (extension ? extension.length + 1 : 0)
+    );
+    return extension
+      ? `${truncatedName}...${extension}`
+      : `${truncatedName}...`;
+  };
+
   // Helper function to check if file is an image
   const isImageFile = (fileName: string): boolean => {
     const imageExtensions = [
@@ -903,8 +920,11 @@ export default function ToReviewPage() {
                                 <p className="text-sm font-medium text-gray-900">
                                   {document.label}
                                 </p>
-                                <p className="text-xs text-gray-600">
-                                  {document.fileName}
+                                <p
+                                  className="text-xs text-gray-600"
+                                  title={document.fileName}
+                                >
+                                  {truncateFileName(document.fileName)}
                                 </p>
                               </div>
                               <div className="flex items-center gap-1.5">
@@ -1046,8 +1066,11 @@ export default function ToReviewPage() {
                           <p className="text-sm font-medium text-gray-900">
                             {document.label}
                           </p>
-                          <p className="text-xs text-gray-600">
-                            {document.fileName}
+                          <p
+                            className="text-xs text-gray-600"
+                            title={document.fileName}
+                          >
+                            {truncateFileName(document.fileName)}
                           </p>
                         </div>
                         <div className="flex items-center gap-1.5">

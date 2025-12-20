@@ -198,11 +198,6 @@ export default function ProfilePage() {
                   Submit Again
                 </Button>
               )}
-              {user?.is_payment_confirmed && (
-                <span className="px-3 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded">
-                  Payment Confirmed
-                </span>
-              )}
             </div>
           </div>
           {!isEditing && (
