@@ -37,7 +37,20 @@ python manage.py migrate
 REM 5) (Optional) Collect static files - uncomment if needed
 REM python manage.py collectstatic --noinput
 
-REM 6) Start the development server on port 8000
+REM 6) Copy frontend environment file
+echo Setting up frontend environment file...
+if exist "..\frontend\.env.example" (
+    if not exist "..\frontend\.env" (
+        copy "..\frontend\.env.example" "..\frontend\.env"
+        echo Frontend .env file created from .env.example
+    ) else (
+        echo Frontend .env file already exists
+    )
+) else (
+    echo Frontend .env.example file not found
+)
+
+REM 7) Start the development server on port 8000
 echo Starting server on http://127.0.0.1:8000 ...
 python manage.py runserver 8000
 
