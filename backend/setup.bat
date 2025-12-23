@@ -50,7 +50,50 @@ if exist "..\frontend\.env.example" (
     echo Frontend .env.example file not found
 )
 
-REM 7) Start the development server on port 8000
+REM 7) Create database directory and file
+echo Creating database directory and file...
+if not exist "db" (
+    mkdir db
+    echo Database directory created
+)
+if not exist "db\db.sqlite3" (
+    echo. > db\db.sqlite3
+    echo Database file created
+) else (
+    echo Database file already exists
+)
+
+REM 8) Create admin user
+echo Creating admin user...
+python manage.py shell -c "
+from django.contrib.auth import get_user_model
+from django.core.management import execute_from_command_line
+import os
+import django
+
+# Setup Django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cargo.settings')
+django.setup()
+
+User = get_user_model()
+
+# Check if admin user already exists
+if not User.objects.filter(email='admin@admin.com').exists():
+    admin_user = User.objects.create_user(
+        email='admin@admin.com',
+        password='12345678Wertyui',
+        full_name='Admin User',
+        role='admin',
+        is_verified=True
+    )
+    print('Admin user created successfully')
+    print('Email: admin@admin.com')
+    print('Password: 12345678Wertyui')
+else:
+    print('Admin user already exists')
+"
+
+REM 9) Start the development server on port 8000
 echo Starting server on http://127.0.0.1:8000 ...
 python manage.py runserver 8000
 
