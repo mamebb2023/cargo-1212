@@ -77,6 +77,23 @@ const handleApiResponse = async <T>(response: Response): Promise<ApiResponse<T>>
       throw new Error('Authentication required. Redirecting to login...');
     }
 
+    // Handle Django REST framework validation errors
+    // DRF returns field-specific errors like {"email": ["error message"]}
+    if (typeof data === 'object' && data !== null) {
+      // Check if it's a DRF validation error format
+      const firstKey = Object.keys(data)[0];
+      if (firstKey && Array.isArray(data[firstKey])) {
+        // It's a DRF validation error, extract the first error message
+        const errorMessage = data[firstKey][0];
+        throw new Error(errorMessage || `Validation error for ${firstKey}`);
+      }
+
+      // Check if it's our custom API response format
+      if (data.message) {
+        throw new Error(data.message);
+      }
+    }
+
     throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
   }
 
@@ -177,6 +194,9 @@ export const authApi = {
     if (userData.role) {
       backendData.role = userData.role;
 
+      // Always include company_name since it's required for all users
+      backendData.company_name = userData.carrierData?.companyName || '';
+
       if (userData.role === "carrier" && userData.carrierSubcategory && userData.carrierData) {
         const carrierTypeMapping: Record<"company" | "plc" | "truckOwner", CarrierType> = {
           company: "company",
@@ -186,7 +206,6 @@ export const authApi = {
         backendData.carrier_type = carrierTypeMapping[userData.carrierSubcategory];
 
         if (userData.carrierSubcategory === "company") {
-          backendData.company_name = userData.carrierData.companyName;
           backendData.number_of_trucks = parseInt(userData.carrierData.companyNumberOfTrucks || "0");
         } else if (userData.carrierSubcategory === "plc") {
           backendData.number_of_trucks = parseInt(userData.carrierData.plcNumberOfTrucks || "0");
@@ -262,7 +281,7 @@ export const authApi = {
     files: { [key: string]: File };
   }) => {
     try {
-      // Step 1: Register the user
+      // Step 1: Register the user using the existing register function
       const userData = {
         ...registrationData.formData,
         role: registrationData.selectedRole,

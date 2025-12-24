@@ -51,9 +51,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     role = serializers.ChoiceField(
         choices=User.ROLE_CHOICES, default="shipper", required=False
     )
-    company_name = serializers.CharField(
-        max_length=255, required=False, allow_blank=True
-    )
+    company_name = serializers.CharField(max_length=255, required=True)
     carrier_type = serializers.ChoiceField(
         choices=[
             ("company", "Company"),
@@ -153,7 +151,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        validated_data.pop("confirm_password")
+        validated_data.pop("confirm_password", None)
 
         # Set default role if not provided
         if "role" not in validated_data:

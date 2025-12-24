@@ -131,13 +131,15 @@ export default function RegisterPage() {
 
     const requiredDocuments = getRequiredDocuments();
 
+    // Company name is required for all users
+    if (!carrierData.companyName.trim()) {
+      toast.error("Please enter the company name");
+      return;
+    }
+
     // Validate number inputs for carriers
     if (selectedRole === "carrier") {
       if (carrierSubcategory === "company") {
-        if (!carrierData.companyName) {
-          toast.error("Please enter the company name");
-          return;
-        }
         if (!carrierData.companyNumberOfTrucks) {
           toast.error("Please enter the number of trucks");
           return;
@@ -209,7 +211,11 @@ export default function RegisterPage() {
       }
     } catch (error) {
       console.error("Registration error:", error);
-      toast.error("Registration failed. Please try again.");
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Registration failed. Please try again.";
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -678,21 +684,19 @@ export default function RegisterPage() {
                 </Button>
                 <Button
                   onClick={() => {
-                    if (selectedRole === "shipper") {
-                      if (!carrierData.companyName.trim()) {
-                        toast.error("Please enter the company name");
-                        return;
-                      }
-                      setStep("documents");
-                    } else if (selectedRole === "carrier") {
+                    // Company name is required for all users
+                    if (!carrierData.companyName.trim()) {
+                      toast.error("Please enter the company name");
+                      return;
+                    }
+
+                    if (selectedRole === "carrier") {
                       if (!carrierSubcategory) {
                         toast.error("Please select a carrier type to continue");
                         return;
                       }
-                      if (!carrierData.companyName.trim()) {
-                        toast.error("Please enter the company name");
-                        return;
-                      }
+                      setStep("documents");
+                    } else if (selectedRole === "shipper") {
                       setStep("documents");
                     } else {
                       toast.error("Please select a role to continue");
