@@ -643,19 +643,25 @@ export default function RegisterPage() {
                       </p>
                     </button>
                   </div>
+                </div>
+              )}
 
-                  {/* Company Name for carrier types */}
-                  <div className="space-y-2">
-                    <Label htmlFor="carrierCompanyName">Company Name</Label>
-                    <Input
-                      id="carrierCompanyName"
-                      type="text"
-                      placeholder="Enter your company name"
-                      value={carrierData.companyName}
-                      onChange={(e) => updateCarrierData("companyName", e.target.value)}
-                      required
-                    />
-                  </div>
+              {/* Company Name for both shipper and carrier */}
+              {selectedRole && (
+                <div className="space-y-2 mt-6">
+                  <Label htmlFor="carrierCompanyName">
+                    Company Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="carrierCompanyName"
+                    type="text"
+                    placeholder="Enter your company name"
+                    value={carrierData.companyName}
+                    onChange={(e) =>
+                      updateCarrierData("companyName", e.target.value)
+                    }
+                    required
+                  />
                 </div>
               )}
 

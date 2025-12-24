@@ -1,103 +1,106 @@
 @echo off
 setlocal
 
+REM ============================================
 REM Navigate to the directory of this script
+REM ============================================
 pushd "%~dp0"
 
 echo ============================================
-echo Setting up backend environment
+echo Setting up Django backend environment
 echo ============================================
 
+REM ============================================
 REM 1) Create virtual environment if it does not exist
+REM ============================================
 if not exist "venv" (
     echo Creating virtual environment...
     python -m venv venv
+) else (
+    echo Virtual environment already exists
 )
 
+REM ============================================
 REM 2) Activate virtual environment
+REM ============================================
 echo Activating virtual environment...
-call ".\venv\Scripts\activate.bat"
+call ".\venv\Scripts\activate"
 
-REM 3) Upgrade pip and install dependencies
+REM ============================================
+REM 3) Upgrade pip
+REM ============================================
 echo Upgrading pip...
 python -m pip install --upgrade pip
 
-echo Installing requirements...
+REM ============================================
+REM 4) Install dependencies
+REM ============================================
 if exist "requirements.txt" (
+    echo Installing requirements...
     pip install -r requirements.txt
 ) else (
-    echo requirements.txt not found. Please ensure it exists.
+    echo ERROR: requirements.txt not found
     goto :end
 )
 
-REM 4) Run database migrations
-echo Applying migrations...
-python manage.py migrate
-
-REM 5) (Optional) Collect static files - uncomment if needed
-REM python manage.py collectstatic --noinput
-
-REM 6) Copy frontend environment file
-echo Setting up frontend environment file...
-if exist "..\frontend\.env.example" (
-    if not exist "..\frontend\.env" (
-        copy "..\frontend\.env.example" "..\frontend\.env"
-        echo Frontend .env file created from .env.example
-    ) else (
-        echo Frontend .env file already exists
-    )
-) else (
-    echo Frontend .env.example file not found
-)
-
-REM 7) Create database directory and file
-echo Creating database directory and file...
+REM ============================================
+REM 5) Create database directory
+REM ============================================
+echo Ensuring database directory exists...
 if not exist "db" (
     mkdir db
     echo Database directory created
-)
-if not exist "db\db.sqlite3" (
-    echo. > db\db.sqlite3
-    echo Database file created
 ) else (
-    echo Database file already exists
+    echo Database directory already exists
 )
 
-REM 8) Create admin user
-echo Creating admin user...
-python manage.py shell -c "
-from django.contrib.auth import get_user_model
-from django.core.management import execute_from_command_line
-import os
-import django
+REM ============================================
+REM 6) Create SQLite database file
+REM ============================================
+echo Ensuring SQLite database file exists...
+if not exist "db\db.sqlite3" (
+    type nul > "db\db.sqlite3"
+    echo db.sqlite3 created
+) else (
+    echo db.sqlite3 already exists
+)
 
-# Setup Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cargo.settings')
-django.setup()
+REM ============================================
+REM 7) Run Django migrations
+REM ============================================
+echo Running makemigrations...
+python manage.py makemigrations
+if errorlevel 1 (
+    echo ERROR: makemigrations failed
+    goto :end
+)
 
-User = get_user_model()
+echo Running migrate...
+python manage.py migrate
+if errorlevel 1 (
+    echo ERROR: migrate failed
+    goto :end
+)
 
-# Check if admin user already exists
-if not User.objects.filter(email='admin@admin.com').exists():
-    admin_user = User.objects.create_user(
-        email='admin@admin.com',
-        password='12345678Wertyui',
-        full_name='Admin User',
-        role='admin',
-        is_verified=True
-    )
-    print('Admin user created successfully')
-    print('Email: admin@admin.com')
-    print('Password: 12345678Wertyui')
-else:
-    print('Admin user already exists')
-"
+REM
+REM 8) Run Django system check
+REM ============================================
+echo Running Django system checks...
+python manage.py check
+if errorlevel 1 (
+    echo ERROR: Django check failed
+    goto :end
+)
 
-REM 9) Start the development server on port 8000
-echo Starting server on http://127.0.0.1:8000 ...
+REM ============================================
+REM 9) Start development server
+REM ============================================
+echo ============================================
+echo Starting Django development server
+echo ============================================
 python manage.py runserver 8000
 
 :end
-popd
-endlocal
-
+echo.
+echo Script finished
+pause
