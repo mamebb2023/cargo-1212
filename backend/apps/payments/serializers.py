@@ -51,6 +51,15 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
         if not request or not request.user:
             raise serializers.ValidationError("Authentication required")
 
+        # Validate payment amount - all payments should be 200 ETB
+        from decimal import Decimal
+        REQUIRED_PAYMENT_AMOUNT = Decimal('200.00')
+        
+        if data.get('amount') != REQUIRED_PAYMENT_AMOUNT:
+            raise serializers.ValidationError(
+                f"Invalid payment amount. All payments must be exactly ETB {REQUIRED_PAYMENT_AMOUNT}"
+            )
+
         # If bid is provided, check if it's for bid access payment
         if data.get('bid'):
             bid = data['bid']

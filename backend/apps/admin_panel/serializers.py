@@ -13,9 +13,18 @@ class AdminUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'full_name', 'phone', 'role', 'is_verified',
-            'is_payment_confirmed', 'company_name', 'carrier_type',
-            'average_rating', 'total_ratings', 'created_at'
+            "id",
+            "email",
+            "full_name",
+            "phone",
+            "role",
+            "is_verified",
+            "is_payment_confirmed",
+            "company_name",
+            "carrier_type",
+            "average_rating",
+            "total_ratings",
+            "created_at",
         ]
 
 
@@ -35,18 +44,47 @@ class AdminStatsSerializer(serializers.Serializer):
 
 
 class AdminBidSerializer(serializers.ModelSerializer):
-    """Serializer for admin bid management"""
+    """Serializer for admin bid management - includes all fields for review"""
 
-    user = serializers.StringRelatedField()
+    user = serializers.SerializerMethodField()
     offers_count = serializers.SerializerMethodField()
     lowest_offer = serializers.SerializerMethodField()
+    bid_files_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Bid
         fields = [
-            'id', 'title', 'budget', 'status', 'deadline', 'user',
-            'offers_count', 'lowest_offer', 'created_at'
+            "id",
+            "title",
+            "description",
+            "budget",
+            "origin",
+            "origin_address",
+            "destination",
+            "destination_address",
+            "weight",
+            "cargo_type",
+            "special_requirements",
+            "status",
+            "deadline",
+            "user",
+            "offers_count",
+            "lowest_offer",
+            "bid_files_url",
+            "created_at",
+            "updated_at",
         ]
+
+    def get_user(self, obj):
+        """Return full user information"""
+        user = obj.user
+        return {
+            "id": user.id,
+            "full_name": user.full_name,
+            "company_name": user.company_name,
+            "email": user.email,
+            "phone": user.phone,
+        }
 
     def get_offers_count(self, obj):
         return obj.offers.count()
@@ -55,54 +93,84 @@ class AdminBidSerializer(serializers.ModelSerializer):
         lowest = obj.lowest_offer
         return str(lowest) if lowest else None
 
+    def get_bid_files_url(self, obj):
+        """Return the URL to the bid files if available"""
+        if obj.bid_files:
+            return obj.bid_files.url
+        return None
+
 
 class AdminOfferSerializer(serializers.ModelSerializer):
     """Serializer for admin offer management"""
 
-    bid_title = serializers.CharField(source='bid.title', read_only=True)
-    carrier_name = serializers.CharField(source='user.full_name', read_only=True)
-    shipper_name = serializers.CharField(source='bid.user.full_name', read_only=True)
+    bid_title = serializers.CharField(source="bid.title", read_only=True)
+    carrier_name = serializers.CharField(source="user.full_name", read_only=True)
+    shipper_name = serializers.CharField(source="bid.user.full_name", read_only=True)
 
     class Meta:
         model = Offer
         fields = [
-            'id', 'bid', 'bid_title', 'user', 'carrier_name', 'shipper_name',
-            'price', 'status', 'is_selected', 'created_at'
+            "id",
+            "bid",
+            "bid_title",
+            "user",
+            "carrier_name",
+            "shipper_name",
+            "price",
+            "status",
+            "is_selected",
+            "created_at",
         ]
 
 
 class AdminRatingSerializer(serializers.ModelSerializer):
     """Serializer for admin rating management"""
 
-    shipper_name = serializers.CharField(source='user.full_name', read_only=True)
-    carrier_name = serializers.CharField(source='carrier.full_name', read_only=True)
-    bid_title = serializers.CharField(source='bid.title', read_only=True)
+    shipper_name = serializers.CharField(source="user.full_name", read_only=True)
+    carrier_name = serializers.CharField(source="carrier.full_name", read_only=True)
+    bid_title = serializers.CharField(source="bid.title", read_only=True)
 
     class Meta:
         model = Rating
         fields = [
-            'id', 'user', 'shipper_name', 'carrier', 'carrier_name',
-            'bid', 'bid_title', 'score', 'comment', 'created_at'
+            "id",
+            "user",
+            "shipper_name",
+            "carrier",
+            "carrier_name",
+            "bid",
+            "bid_title",
+            "score",
+            "comment",
+            "created_at",
         ]
 
 
 class AdminPaymentSerializer(serializers.ModelSerializer):
     """Serializer for admin payment management"""
 
-    user_name = serializers.CharField(source='user.full_name', read_only=True)
+    user_name = serializers.CharField(source="user.full_name", read_only=True)
     payment_proof_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Payment
         fields = [
-            'id', 'user', 'user_name', 'amount', 'payment_method',
-            'reference_number', 'status', 'payment_proof_url',
-            'created_at', 'updated_at', 'bid',
+            "id",
+            "user",
+            "user_name",
+            "amount",
+            "payment_method",
+            "reference_number",
+            "status",
+            "payment_proof_url",
+            "created_at",
+            "updated_at",
+            "bid",
         ]
 
     def get_payment_proof_url(self, obj):
         if obj.payment_proof:
-            request = self.context.get('request')
+            request = self.context.get("request")
             url = obj.payment_proof.url
             if request:
                 return request.build_absolute_uri(url)

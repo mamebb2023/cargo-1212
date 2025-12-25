@@ -25,6 +25,7 @@ import {
   Truck,
   Package,
 } from "lucide-react";
+import BidDetailModal from "./BidDetailModal";
 
 interface SubmissionDocument {
   id: number;
@@ -84,6 +85,7 @@ export default function ToReviewPage() {
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
   const [pendingBids, setPendingBids] = useState<AdminBid[]>([]);
   const [isLoadingBids, setIsLoadingBids] = useState(false);
+  const [selectedBid, setSelectedBid] = useState<AdminBid | null>(null);
 
   // Helper function to truncate long file names
   const truncateFileName = (
@@ -691,7 +693,8 @@ export default function ToReviewPage() {
                     {pendingBids.map((bid) => (
                       <div
                         key={bid.id}
-                        className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                        className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => setSelectedBid(bid)}
                       >
                         <div className="flex items-center gap-3 mb-4">
                           <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-300">
@@ -724,45 +727,87 @@ export default function ToReviewPage() {
                           Bid Details
                         </p>
                         <div className="space-y-2">
-                          <div className="flex items-center justify-between rounded-full border px-4 py-2 bg-gray-50">
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">
-                                {bid.title}
-                              </p>
-                              <p className="text-xs text-gray-600">
-                                Route: {bid.origin || "—"} →{" "}
-                                {bid.destination || "—"} | Budget:{" "}
-                                {bid.budget || "—"}
-                              </p>
+                          <div className="border rounded-lg px-4 py-3 bg-gray-50">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-900 mb-1">
+                                  {bid.title}
+                                </p>
+                                {bid.description && (
+                                  <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                                    {bid.description}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 ml-2" onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Approve bid"
+                                  onClick={() =>
+                                    handleBidAction(bid.id, "approve")
+                                  }
+                                  disabled={processingDocumentId === bid.id}
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-50 transition-all duration-200 rounded-full"
+                                >
+                                  <Check className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Reject bid"
+                                  onClick={() =>
+                                    handleBidAction(bid.id, "reject")
+                                  }
+                                  disabled={processingDocumentId === bid.id}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200 rounded-full"
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-yellow-100 text-yellow-700">
+                                  PENDING
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1.5">
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label="Approve bid"
-                                onClick={() =>
-                                  handleBidAction(bid.id, "approve")
-                                }
-                                disabled={processingDocumentId === bid.id}
-                                className="text-green-600 hover:text-green-700 hover:bg-green-50 transition-all duration-200 rounded-full"
-                              >
-                                <Check className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label="Reject bid"
-                                onClick={() =>
-                                  handleBidAction(bid.id, "reject")
-                                }
-                                disabled={processingDocumentId === bid.id}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200 rounded-full"
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                              <span className="text-xs font-semibold px-2 py-0.5 rounded bg-yellow-100 text-yellow-700">
-                                PENDING
-                              </span>
+                            <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                              <div>
+                                <strong>Route:</strong> {bid.origin || "—"} →{" "}
+                                {bid.destination || "—"}
+                              </div>
+                              <div>
+                                <strong>Budget:</strong> {bid.budget || "—"}
+                              </div>
+                              {bid.cargo_type && (
+                                <div>
+                                  <strong>Cargo:</strong> {bid.cargo_type}
+                                </div>
+                              )}
+                              {bid.weight && (
+                                <div>
+                                  <strong>Weight:</strong> {bid.weight}
+                                </div>
+                              )}
+                              {bid.deadline && (
+                                <div>
+                                  <strong>Deadline:</strong> {bid.deadline}
+                                </div>
+                              )}
+                              {bid.special_requirements && (
+                                <div className="col-span-2">
+                                  <strong>Special Requirements:</strong>{" "}
+                                  <span className="text-orange-600">
+                                    {bid.special_requirements.length > 50
+                                      ? bid.special_requirements.substring(0, 50) + "..."
+                                      : bid.special_requirements}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="mt-2 pt-2 border-t border-gray-200 flex items-center justify-center">
+                              <p className="text-xs text-blue-600 font-medium flex items-center gap-1">
+                                <Eye className="w-3 h-3" />
+                                Click to view complete details
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -1246,6 +1291,16 @@ export default function ToReviewPage() {
           </div>
         </div>
       )}
+
+      {/* Bid Detail Modal */}
+      <BidDetailModal
+        bid={selectedBid}
+        onClose={() => setSelectedBid(null)}
+        onOpenBid={(bidId) => {
+          navigate(`/dashboard/bids/${bidId}`);
+          setSelectedBid(null);
+        }}
+      />
     </div>
   );
 }

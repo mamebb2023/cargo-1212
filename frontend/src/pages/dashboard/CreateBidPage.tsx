@@ -142,9 +142,9 @@ export default function CreateBidPage() {
       const bidResponse = await bidsApi.createBid(bidData);
       console.log("Bid created:", bidResponse);
 
-      // Then create the payment
+      // Then create the payment - Fixed amount of 200 ETB for bid posting
       const formDataPayload = new FormData();
-      formDataPayload.append("amount", formData.budget || "0");
+      formDataPayload.append("amount", "200.00"); // ETB 200 - Fixed fee for posting a bid
       formDataPayload.append("payment_method", paymentMethod);
       formDataPayload.append("reference_number", `REF-${Date.now()}`);
       formDataPayload.append("payment_proof", file);

@@ -228,14 +228,22 @@ export interface AdminBid {
   title: string;
   description?: string;
   budget?: string;
+  origin?: string;
+  origin_address?: string;
+  destination?: string;
+  destination_address?: string;
+  weight?: string;
+  cargo_type?: string;
+  special_requirements?: string;
   status?: string;
+  deadline?: string;
   offers_count?: number;
   lowest_offer?: string | null;
+  bid_files_url?: string | null;
   created_at?: string;
-  deadline?: string;
-  origin?: string;
-  destination?: string;
+  updated_at?: string;
   user?: {
+    id?: number;
     company_name?: string;
     full_name?: string;
     email?: string;
