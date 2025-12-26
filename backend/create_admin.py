@@ -30,12 +30,16 @@ def create_admin_user():
             email="admin@admin.com",
             password="12345678Wertyui",
             full_name="Admin User",
+            phone="+251911234567",
             role="admin",
             is_verified=True,
+            is_staff=True,
+            is_superuser=True,
         )
         print("Admin user created successfully")
         print("Email: admin@admin.com")
         print("Password: 12345678Wertyui")
+        print("Phone: +251911234567")
     except Exception as e:
         print(f"Error creating admin user: {e}")
         import traceback
