@@ -259,7 +259,8 @@ class UserRatingView(generics.RetrieveAPIView):
         # Get user's rating information
         from apps.ratings.models import Rating
 
-        user_ratings = Rating.objects.filter(carrier=user).order_by("-created_at")
+        # Use ratee field (not carrier) - this gets ratings received by this user
+        user_ratings = Rating.objects.filter(ratee=user).order_by("-created_at")
         ratings_data = []
 
         for rating in user_ratings:
@@ -267,12 +268,21 @@ class UserRatingView(generics.RetrieveAPIView):
                 {
                     "id": rating.id,
                     "score": rating.score,
-                    "comment": rating.comment,
-                    "created_at": rating.created_at,
+                    "comment": rating.comment or "",
+                    "created_at": (
+                        rating.created_at.isoformat()
+                        if hasattr(rating.created_at, "isoformat")
+                        else str(rating.created_at)
+                    ),
+                    "rater": {
+                        "id": rating.rater.id,
+                        "full_name": rating.rater.full_name,
+                        "company_name": getattr(rating.rater, "company_name", ""),
+                    },
                     "shipper": {
-                        "id": rating.user.id,
-                        "full_name": rating.user.full_name,
-                        "company_name": getattr(rating.user, "company_name", ""),
+                        "id": rating.rater.id,
+                        "full_name": rating.rater.full_name,
+                        "company_name": getattr(rating.rater, "company_name", ""),
                     },
                     "bid": {"id": rating.bid.id, "title": rating.bid.title},
                 }
@@ -282,10 +292,12 @@ class UserRatingView(generics.RetrieveAPIView):
             "id": user.id,
             "full_name": user.full_name,
             "email": user.email,
-            "company_name": user.company_name,
-            "carrier_type": user.carrier_type,
-            "average_rating": user.average_rating,
-            "total_ratings": user.total_ratings,
+            "company_name": user.company_name or "",
+            "carrier_type": user.carrier_type or "",
+            "average_rating": (
+                float(user.average_rating) if user.average_rating else 0.0
+            ),
+            "total_ratings": user.total_ratings or 0,
             "ratings": ratings_data,
         }
 

@@ -7,6 +7,8 @@ import { bidsApi, paymentsApi } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { useAuthContext } from "@/hooks/useAuth";
 import { RatingDisplay } from "@/components/ui/rating";
+import RatingDetailsModal from "@/components/RatingDetailsModal";
+// import { usersApi } from "@/lib/api";
 import type { DashboardBidSummary } from "@/types";
 
 type ProcessedBid = DashboardBidSummary & {
@@ -35,6 +37,11 @@ export default function BidsPage() {
   const [bids, setBids] = useState<DashboardBidSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [paidBids, setPaidBids] = useState<Set<number>>(new Set());
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingTarget, setRatingTarget] = useState<{
+    userId: number;
+    userName: string;
+  } | null>(null);
 
   // Redirect shippers to my-bids page
   useEffect(() => {
@@ -451,14 +458,40 @@ export default function BidsPage() {
                   className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow"
                 >
                   <div className="flex flex-col gap-4">
-                    {/* Header Row: Title | Rating | Status */}
-                    <div className="flex items-center justify-between gap-3">
-                      <h3 className="text-lg font-semibold text-gray-900 truncate flex-1">
-                        {bid.title}
-                      </h3>
+                    <div className="flex justify-between items-center">
+                      <div>
 
-                      {/* Company Rating - positioned between title and status */}
-                      <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {bid.title}
+                    </h3>
+
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {bid.description}
+                    </p>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3">
+                      <span
+                        className={`px-2 py-1 text-xs font-semibold rounded whitespace-nowrap ${
+                          bid.status === "approved"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-blue-100 text-blue-700"
+                        }`}
+                      >
+                        {formatStatusLabel(bid.status)}
+                      </span>
+
+                      {/* Company Rating - clickable */}
+                      <div 
+                        className="flex flex-col items-end gap-1 flex-shrink-0 cursor-pointer p-2 hover:bg-gray-500/10  rounded-lg transition-all"
+                        onClick={() => {
+                          setRatingTarget({
+                            userId: bid.user.id,
+                            userName: bid.user.company_name || bid.user.full_name,
+                          });
+                          setShowRatingModal(true);
+                        }}
+                      >
                         <div className="flex items-center gap-2">
                           <RatingDisplay
                             rating={Number(bid.user.average_rating) || 0}
@@ -473,24 +506,9 @@ export default function BidsPage() {
                           {bid.user.company_name || bid.user.full_name}
                         </span>
                       </div>
-
-                      <span
-                        className={`px-2 py-1 text-xs font-semibold rounded whitespace-nowrap ${
-                          bid.status === "approved"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-blue-100 text-blue-700"
-                        }`}
-                      >
-                        {formatStatusLabel(bid.status)}
-                      </span>
+                      </div>
                     </div>
 
-                    {/* Description */}
-                    <p className="text-sm text-gray-600 line-clamp-2">
-                      {bid.description}
-                    </p>
-
-                    {/* Show additional details only if paid */}
                     {bid.isPaid ? (
                       <div className="space-y-3">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
@@ -547,7 +565,7 @@ export default function BidsPage() {
                     )}
 
                     {/* Action Button */}
-                    <div className="flex justify-end pt-2 border-t border-gray-100">
+                    <div className="flex justify-end pt-1">
                       <Button
                         variant="secondary"
                         size="sm"
@@ -704,6 +722,19 @@ export default function BidsPage() {
           </div>
         </div>
       </div>
+
+      {/* Rating Details Modal */}
+      {ratingTarget && (
+        <RatingDetailsModal
+          isOpen={showRatingModal}
+          onClose={() => {
+            setShowRatingModal(false);
+            setRatingTarget(null);
+          }}
+          userId={ratingTarget.userId}
+          userName={ratingTarget.userName}
+        />
+      )}
     </div>
   );
 }

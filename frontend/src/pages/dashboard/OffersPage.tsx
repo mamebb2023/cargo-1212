@@ -17,6 +17,7 @@ import { offersApi } from "@/lib/api";
 import { useAuthContext } from "@/hooks/useAuth";
 import { RatingDisplay } from "@/components/ui/rating";
 import RatingModal from "@/components/RatingModal";
+import RatingDetailsModal from "@/components/RatingDetailsModal";
 
 interface Offer {
   id: number;
@@ -66,6 +67,11 @@ export default function OffersPage() {
     offerId: number;
     carrierId: number;
     carrierName: string;
+  } | null>(null);
+  const [showRatingDetailsModal, setShowRatingDetailsModal] = useState(false);
+  const [ratingDetailsTarget, setRatingDetailsTarget] = useState<{
+    userId: number;
+    userName: string;
   } | null>(null);
 
   // Format date to readable format
@@ -409,7 +415,16 @@ export default function OffersPage() {
                     <div>
                       <p className="text-xs text-gray-600">Rating</p>
                       <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
+                        <div 
+                          className="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-500/10  rounded-lg transition-all"
+                          onClick={() => {
+                            setRatingDetailsTarget({
+                              userId: offer.user.id,
+                              userName: offer.user.company_name || offer.user.full_name,
+                            });
+                            setShowRatingDetailsModal(true);
+                          }}
+                        >
                           <RatingDisplay
                             rating={Number(offer.user.average_rating) || 0}
                             showText={false}
@@ -541,6 +556,19 @@ export default function OffersPage() {
             setShowRatingModal(false);
             setRatingTarget(null);
           }}
+        />
+      )}
+
+      {/* Rating Details Modal */}
+      {ratingDetailsTarget && (
+        <RatingDetailsModal
+          isOpen={showRatingDetailsModal}
+          onClose={() => {
+            setShowRatingDetailsModal(false);
+            setRatingDetailsTarget(null);
+          }}
+          userId={ratingDetailsTarget.userId}
+          userName={ratingDetailsTarget.userName}
         />
       )}
     </div>

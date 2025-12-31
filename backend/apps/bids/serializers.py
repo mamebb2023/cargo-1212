@@ -71,7 +71,7 @@ class BidCreateSerializer(serializers.ModelSerializer):
         ]
 
     def validate_budget(self, value):
-        if value <= 0:
+        if value is not None and value <= 0:
             raise serializers.ValidationError("Budget must be greater than 0")
         return value
 

@@ -26,7 +26,7 @@ class Bid(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     budget = models.DecimalField(
-        max_digits=12, decimal_places=2, validators=[MinValueValidator(0)]
+        max_digits=12, decimal_places=2, validators=[MinValueValidator(0)], null=True, blank=True
     )
 
     # Location information

@@ -98,7 +98,6 @@ export default function CreateBidPage() {
       "destination",
       "cargoType",
       "weight",
-      "budget",
       "cpoAmount",
       "deadline",
     ];
@@ -124,10 +123,9 @@ export default function CreateBidPage() {
   }) => {
     try {
       // First create the bid
-      const bidData = {
+      const bidData: Record<string, unknown> = {
         title: formData.title,
         description: formData.description,
-        budget: formData.budget,
         origin: formData.origin,
         origin_address: formData.originAddress || "",
         destination: formData.destination,
@@ -137,6 +135,11 @@ export default function CreateBidPage() {
         deadline: formData.deadline,
         special_requirements: formData.specialRequirements || "",
       };
+      
+      // Only include budget if provided
+      if (formData.budget) {
+        bidData.budget = formData.budget;
+      }
 
       console.log("Creating bid with data:", bidData);
       const bidResponse = await bidsApi.createBid(bidData);
@@ -196,10 +199,12 @@ export default function CreateBidPage() {
                     <p className="text-sm font-medium text-gray-500">Title</p>
                     <p className="text-gray-900">{formData.title}</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Budget</p>
-                    <p className="text-gray-900">ETB {formData.budget}</p>
-                  </div>
+                  {formData.budget && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Budget</p>
+                      <p className="text-gray-900">ETB {formData.budget}</p>
+                    </div>
+                  )}
                   <div>
                     <p className="text-sm font-medium text-gray-500">
                       CPO Amount
@@ -451,7 +456,7 @@ export default function CreateBidPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="budget">
-                Budget (ETB) <span className="text-red-500">*</span>
+                Budget (ETB) (Optional)
               </Label>
               <Input
                 id="budget"
@@ -459,7 +464,6 @@ export default function CreateBidPage() {
                 placeholder="e.g., 25000"
                 value={formData.budget}
                 onChange={(e) => handleChange("budget", e.target.value)}
-                required
               />
             </div>
 
