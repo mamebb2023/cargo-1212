@@ -51,26 +51,40 @@ export default function RatingDetailsModal({
     try {
       setLoading(true);
       const response = await usersApi.getUserRating(userId);
-      const data = response.data;
+      type RatingResponse = {
+        average_rating?: number;
+        total_ratings?: number;
+        ratings?: Array<{
+          id: number;
+          score: number;
+          comment?: string;
+          created_at: string;
+          rater?: { id: number; full_name: string; company_name?: string };
+          shipper?: { id: number; full_name: string; company_name?: string };
+          user?: { id: number; full_name: string; company_name?: string };
+          bid?: { id: number; title: string };
+        }>;
+      };
+      const data = response.data as RatingResponse;
       
       setUserRating({
-        average_rating: data.average_rating || 0,
-        total_ratings: data.total_ratings || 0,
+        average_rating: data?.average_rating || 0,
+        total_ratings: data?.total_ratings || 0,
       });
       
       // Map the ratings data to match our interface
-      const ratingsData = (data.ratings || []).map((rating: any) => {
+      const ratingsData = (data?.ratings || []).map((rating) => {
         // Handle both rater and shipper fields (for backward compatibility)
-        const raterData = rating.rater || rating.shipper || rating.user || {};
+        const raterData = rating.rater || rating.shipper || rating.user;
         return {
           id: rating.id,
           score: rating.score,
           comment: rating.comment || "",
           created_at: rating.created_at,
           rater: {
-            id: raterData.id || 0,
-            full_name: raterData.full_name || "Unknown",
-            company_name: raterData.company_name,
+            id: raterData?.id || 0,
+            full_name: raterData?.full_name || "Unknown",
+            company_name: raterData?.company_name,
           },
           bid: rating.bid || { id: 0, title: "Unknown Bid" },
         };
