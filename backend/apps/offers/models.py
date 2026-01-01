@@ -19,7 +19,7 @@ class Offer(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="offers",
-        limit_choices_to={"role": "carrier"},
+        limit_choices_to={"role__in": ["carrier", "admin"]},
     )
 
     # Offer details

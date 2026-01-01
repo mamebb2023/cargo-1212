@@ -24,20 +24,20 @@ class OfferListCreateView(generics.ListCreateAPIView):
         if user.role == 'carrier':
             # Carriers see their own offers
             return Offer.objects.filter(user=user).order_by('-created_at')
-        elif user.role == 'shipper':
-            # Shippers see offers on their bids
-            return Offer.objects.filter(bid__user=user).order_by('-created_at')
         elif user.role == 'admin':
             # Admins see all offers
             return Offer.objects.all().order_by('-created_at')
+        elif user.role == 'shipper':
+            # Shippers see offers on their bids
+            return Offer.objects.filter(bid__user=user).order_by('-created_at')
 
         return Offer.objects.none()
 
     def create(self, request, *args, **kwargs):
-        if request.user.role != 'carrier':
+        if request.user.role not in ['carrier', 'admin']:
             return Response(api_response(
                 success=False,
-                message="Only carriers can submit offers"
+                message="Only carriers and admins can submit offers"
             ), status=status.HTTP_403_FORBIDDEN)
 
         serializer = self.get_serializer(data=request.data)
@@ -83,12 +83,12 @@ class OfferDetailView(generics.RetrieveUpdateAPIView):
         if user.role == 'carrier':
             # Carriers can only see their own offers
             return Offer.objects.filter(user=user)
-        elif user.role == 'shipper':
-            # Shippers can see offers on their bids
-            return Offer.objects.filter(bid__user=user)
         elif user.role == 'admin':
             # Admins can see all offers
             return Offer.objects.all()
+        elif user.role == 'shipper':
+            # Shippers can see offers on their bids
+            return Offer.objects.filter(bid__user=user)
 
         return Offer.objects.none()
 
@@ -104,8 +104,15 @@ class OfferDetailView(generics.RetrieveUpdateAPIView):
     def update(self, request, *args, **kwargs):
         offer = self.get_object()
 
-        # Only carriers can update their own offers, and only if not accepted
-        if request.user != offer.user or offer.status == 'accepted':
+        # Cannot update accepted offers
+        if offer.status == 'accepted':
+            return Response(api_response(
+                success=False,
+                message="Cannot update accepted offers"
+            ), status=status.HTTP_403_FORBIDDEN)
+
+        # Only carriers and admins can update their own offers
+        if request.user.role not in ['carrier', 'admin'] or request.user != offer.user:
             return Response(api_response(
                 success=False,
                 message="You can only update your own pending offers"
