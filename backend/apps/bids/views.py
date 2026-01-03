@@ -3,7 +3,7 @@ from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .models import Bid
+from .models import Bid, BidDeletionRequest, BidDeletionRequest
 from .serializers import (
     BidSerializer,
     BidCreateSerializer,
@@ -245,5 +245,104 @@ def my_bids_view(request):
             success=True,
             message="Your bids retrieved successfully",
             data=serializer.data,
+        )
+    )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def request_bid_deletion_view(request, bid_id):
+    """Request deletion of a bid (shipper only)"""
+
+    try:
+        bid = Bid.objects.get(id=bid_id)
+    except Bid.DoesNotExist:
+        return Response(
+            api_response(success=False, message="Bid not found"),
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    # Check permissions - only the bid owner can request deletion
+    if request.user != bid.user:
+        return Response(
+            api_response(
+                success=False, message="You can only request deletion of your own bids"
+            ),
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    # Debug logging
+    print(f"DEBUG: Bid {bid_id} status: {bid.status}")
+    print(f"DEBUG: Request data: {request.data}")
+
+    # Check if bid can be deleted
+    if bid.status not in ["active", "pending"]:
+        print(f"DEBUG: Bid status {bid.status} not allowed for deletion")
+        return Response(
+            api_response(
+                success=False,
+                message=f"Only active or pending bids can be requested for deletion. Current status: {bid.status}"
+            ),
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Check if deletion request already exists
+    existing_request = BidDeletionRequest.objects.filter(bid=bid).first()
+    if existing_request:
+        print(f"DEBUG: Deletion request already exists for bid {bid_id}, status: {existing_request.status}")
+        if existing_request.status == "pending":
+            return Response(
+                api_response(
+                    success=False,
+                    message="A deletion request for this bid is already pending admin review"
+                ),
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        elif existing_request.status == "approved":
+            return Response(
+                api_response(
+                    success=False,
+                    message="This bid has already been approved for deletion"
+                ),
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        else:  # rejected
+            # Delete the rejected request and allow creating a new one
+            existing_request.delete()
+            print(f"DEBUG: Deleted rejected deletion request for bid {bid_id}, allowing new request")
+
+    reason = request.data.get("reason", "").strip()
+    print(f"DEBUG: Reason received: '{reason}'")
+    if not reason:
+        return Response(
+            api_response(success=False, message="Deletion reason is required"),
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Create deletion request
+    deletion_request = BidDeletionRequest.objects.create(
+        bid=bid,
+        requested_by=request.user,
+        reason=reason,
+    )
+
+    # Create notification for the shipper
+    Notification.create_notification(
+        user=request.user,
+        title="Bid Deletion Request Submitted",
+        message=f"Your deletion request for bid '{bid.title}' has been submitted and is pending admin review.",
+        notification_type="bid_deletion_requested",
+        related_bid=bid,
+    )
+
+    return Response(
+        api_response(
+            success=True,
+            message="Bid deletion request submitted successfully and is pending admin review",
+            data={
+                "id": deletion_request.id,
+                "status": deletion_request.status,
+                "created_at": deletion_request.created_at,
+            }
         )
     )

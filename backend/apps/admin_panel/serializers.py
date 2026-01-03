@@ -2,7 +2,7 @@ from rest_framework import serializers
 from apps.users.models import User
 from apps.verification.models import VerificationDocument
 from apps.payments.models import Payment
-from apps.bids.models import Bid
+from apps.bids.models import Bid, BidDeletionRequest
 from apps.offers.models import Offer
 from apps.ratings.models import Rating
 
@@ -38,6 +38,7 @@ class AdminStatsSerializer(serializers.Serializer):
     active_bids = serializers.IntegerField()
     completed_bids = serializers.IntegerField()
     total_offers = serializers.IntegerField()
+    pending_offers = serializers.IntegerField()
     pending_payments = serializers.IntegerField()
     pending_documents = serializers.IntegerField()
     total_ratings = serializers.IntegerField()
@@ -117,6 +118,10 @@ class AdminOfferSerializer(serializers.ModelSerializer):
             "carrier_name",
             "shipper_name",
             "price",
+            "delivery_time",
+            "vehicle_type",
+            "cpo_service_number",
+            "notes",
             "status",
             "is_selected",
             "created_at",
@@ -176,3 +181,30 @@ class AdminPaymentSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(url)
             return url
         return None
+
+
+class AdminBidDeletionRequestSerializer(serializers.ModelSerializer):
+    """Serializer for admin bid deletion request management"""
+
+    bid_title = serializers.CharField(source="bid.title", read_only=True)
+    shipper_name = serializers.CharField(source="requested_by.full_name", read_only=True)
+    shipper_email = serializers.CharField(source="requested_by.email", read_only=True)
+    reviewed_by_name = serializers.CharField(source="reviewed_by.full_name", read_only=True)
+
+    class Meta:
+        model = BidDeletionRequest
+        fields = [
+            "id",
+            "bid",
+            "bid_title",
+            "requested_by",
+            "shipper_name",
+            "shipper_email",
+            "reason",
+            "status",
+            "reviewed_by",
+            "reviewed_by_name",
+            "admin_notes",
+            "created_at",
+            "reviewed_at",
+        ]

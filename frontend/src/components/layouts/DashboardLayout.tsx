@@ -93,15 +93,15 @@ export default function DashboardLayout() {
       label: "Bids",
       path: "/dashboard/bids",
     },
+    user?.role !== "shipper" && {
+      icon: FileText,
+      label: "Offers",
+      path: "/dashboard/offers",
+    },
     (!isCarrier || isAdmin) && {
       icon: FileText,
       label: "My Bids",
       path: "/dashboard/my-bids",
-    },
-    {
-      icon: FileText,
-      label: "Offers",
-      path: "/dashboard/offers",
     },
     {
       icon: Bell,

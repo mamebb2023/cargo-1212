@@ -7,6 +7,7 @@ class Offer(models.Model):
     """Offer model for carrier responses to bids"""
 
     STATUS_CHOICES = [
+        ("pending", "Pending"),
         ("active", "Active"),
         ("accepted", "Accepted"),
         ("rejected", "Rejected"),
@@ -32,7 +33,7 @@ class Offer(models.Model):
     notes = models.TextField(blank=True)
 
     # Status
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     is_selected = models.BooleanField(default=False)
     delivery_completed = models.BooleanField(default=False)
 
@@ -59,15 +60,66 @@ class Offer(models.Model):
         # Close the bid
         self.bid.close_bid(self)
 
-    def reject_offer(self):
-        """Reject this offer"""
+    def reject_offer(self, admin_user=None, reason=""):
+        """Reject this offer (by shipper or admin)"""
         self.status = "rejected"
         self.save()
+
+        # Create notification for the carrier
+        from apps.notifications.models import Notification
+
+        if admin_user:
+            # Admin rejection
+            Notification.create_notification(
+                user=self.user,
+                title="Offer Rejected",
+                message=f"Your offer for '{self.bid.title}' has been rejected by admin. Reason: {reason if reason else 'No reason provided'}",
+                notification_type="offer_rejected",
+                related_bid=self.bid,
+                related_offer=self,
+            )
+        else:
+            # Shipper rejection
+            Notification.create_notification(
+                user=self.user,
+                title="Offer Rejected",
+                message=f"Your offer for '{self.bid.title}' has been rejected.",
+                notification_type="offer_rejected",
+                related_bid=self.bid,
+                related_offer=self,
+            )
 
     def cancel_offer(self):
         """Cancel this offer"""
         self.status = "cancelled"
         self.save()
+
+    def approve_offer(self, admin_user):
+        """Approve the offer"""
+        self.status = "active"
+        self.save()
+
+        # Create notification for the carrier
+        from apps.notifications.models import Notification
+
+        Notification.create_notification(
+            user=self.user,
+            title="Offer Approved",
+            message=f"Your offer of {self.price} ETB for '{self.bid.title}' has been approved and is now visible to the shipper.",
+            notification_type="offer_approved",
+            related_bid=self.bid,
+            related_offer=self,
+        )
+
+        # Create notification for the shipper
+        Notification.create_notification(
+            user=self.bid.user,
+            title="New Offer Available",
+            message=f"A new offer of {self.price} ETB has been approved for your bid '{self.bid.title}' from {self.user.full_name}.",
+            notification_type="offer_received",
+            related_bid=self.bid,
+            related_offer=self,
+        )
 
     def mark_delivery_completed(self):
         """Mark delivery as completed"""

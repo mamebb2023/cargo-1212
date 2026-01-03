@@ -33,8 +33,8 @@ class OfferListCreateView(generics.ListCreateAPIView):
             # Admins see all offers
             return Offer.objects.all().order_by("-created_at")
         elif user.role == "shipper":
-            # Shippers see offers on their bids
-            return Offer.objects.filter(bid__user=user).order_by("-created_at")
+            # Shippers see only active (approved) offers on their bids
+            return Offer.objects.filter(bid__user=user, status="active").order_by("-created_at")
 
         return Offer.objects.none()
 
@@ -51,12 +51,16 @@ class OfferListCreateView(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         offer = serializer.save()
 
-        # Create notification for the shipper
+        # Offer is created with status="pending" by default
+        # Create notification for admin (if there's an admin notification system)
+        # Note: The offer will be visible to admins in the review page
+
+        # Create notification for the carrier
         Notification.create_notification(
-            user=offer.bid.user,
-            title="New Offer Received",
-            message=f"You received a new offer of {offer.price} ETB for '{offer.bid.title}' from {offer.user.full_name}",
-            notification_type="offer_received",
+            user=offer.user,
+            title="Offer Submitted",
+            message=f"Your offer of {offer.price} ETB for '{offer.bid.title}' has been submitted and is pending admin approval.",
+            notification_type="offer_submitted",
             related_bid=offer.bid,
             related_offer=offer,
         )
@@ -64,7 +68,7 @@ class OfferListCreateView(generics.ListCreateAPIView):
         offer_data = OfferSerializer(offer).data
         return Response(
             api_response(
-                success=True, message="Offer submitted successfully", data=offer_data
+                success=True, message="Offer submitted successfully and is pending admin approval", data=offer_data
             ),
             status=status.HTTP_201_CREATED,
         )
@@ -123,11 +127,41 @@ class OfferDetailView(generics.RetrieveUpdateAPIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # Only carriers and admins can update their own offers
-        if request.user.role not in ["carrier", "admin"] or request.user != offer.user:
+        # Allow admins to update offer status (approve/reject)
+        if request.user.role == "admin":
+            serializer = self.get_serializer(offer, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            
+            old_status = offer.status
+            offer = serializer.save()
+
+            # Handle status changes by admins
+            if old_status != offer.status:
+                if offer.status == "active":
+                    offer.approve_offer(request.user)
+                elif offer.status == "rejected":
+                    offer.reject_offer(request.user, request.data.get("rejection_reason", ""))
+
+            return Response(
+                api_response(
+                    success=True, message="Offer updated successfully", data=serializer.data
+                )
+            )
+
+        # Only carriers can update their own pending offers
+        if request.user.role != "carrier" or request.user != offer.user:
             return Response(
                 api_response(
                     success=False, message="You can only update your own pending offers"
+                ),
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Carriers can only update pending offers
+        if offer.status != "pending":
+            return Response(
+                api_response(
+                    success=False, message="You can only update pending offers"
                 ),
                 status=status.HTTP_403_FORBIDDEN,
             )
@@ -167,7 +201,7 @@ def accept_offer_view(request, offer_id):
 
     if offer.status != "active":
         return Response(
-            api_response(success=False, message="Offer is not active"),
+            api_response(success=False, message="Only active (approved) offers can be accepted"),
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -271,7 +305,7 @@ def reject_offer_view(request, offer_id):
 
     if offer.status != "active":
         return Response(
-            api_response(success=False, message="Offer is not active"),
+            api_response(success=False, message="Only active (approved) offers can be rejected by shipper"),
             status=status.HTTP_400_BAD_REQUEST,
         )
 

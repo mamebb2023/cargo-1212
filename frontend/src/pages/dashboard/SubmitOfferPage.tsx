@@ -140,7 +140,7 @@ export default function SubmitOfferPage() {
       // Submit offer to backend
       await offersApi.createOffer(offerData);
 
-      toast.success("Your offer has been submitted successfully!");
+      toast.success("Your offer has been submitted successfully and is pending admin approval!");
       navigate(`/dashboard/bids/${bid.id}`);
     } catch (error) {
       const errorMessage =

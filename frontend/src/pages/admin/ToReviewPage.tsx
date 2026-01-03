@@ -7,6 +7,7 @@ import {
   verificationApi,
   paymentsApi,
   bidsApi,
+  offersApi,
   API_BASE_URL,
 } from "@/lib/api";
 import Loading from "@/components/ui/loading";
@@ -24,6 +25,10 @@ import {
   Building2,
   Truck,
   Package,
+  Clock,
+  DollarSign,
+  FileText as FileIcon,
+  Trash2,
 } from "lucide-react";
 import BidDetailModal from "./BidDetailModal";
 
@@ -86,6 +91,10 @@ export default function ToReviewPage() {
   const [pendingBids, setPendingBids] = useState<AdminBid[]>([]);
   const [isLoadingBids, setIsLoadingBids] = useState(false);
   const [selectedBid, setSelectedBid] = useState<AdminBid | null>(null);
+  const [pendingOffers, setPendingOffers] = useState<any[]>([]);
+  const [isLoadingOffers, setIsLoadingOffers] = useState(false);
+  const [pendingBidDeletions, setPendingBidDeletions] = useState<any[]>([]);
+  const [isLoadingBidDeletions, setIsLoadingBidDeletions] = useState(false);
 
   // Helper function to truncate long file names
   const truncateFileName = (
@@ -300,6 +309,40 @@ export default function ToReviewPage() {
     }
   }, []);
 
+  const fetchOffers = useCallback(async () => {
+    try {
+      setIsLoadingOffers(true);
+      const res = await adminApi.getOffers({ status: "pending" });
+      const data = Array.isArray(res.data) ? res.data : [];
+      setPendingOffers(data);
+    } catch (error: unknown) {
+      console.error("Error fetching offers:", error);
+      const message =
+        error instanceof Error ? error.message : "Failed to load offers";
+      toast.error(message);
+      setPendingOffers([]);
+    } finally {
+      setIsLoadingOffers(false);
+    }
+  }, []);
+
+  const fetchBidDeletions = useCallback(async () => {
+    try {
+      setIsLoadingBidDeletions(true);
+      const res = await adminApi.getBidDeletionRequests({ status: "pending" });
+      const data = Array.isArray(res.data) ? res.data : [];
+      setPendingBidDeletions(data);
+    } catch (error: unknown) {
+      console.error("Error fetching bid deletions:", error);
+      const message =
+        error instanceof Error ? error.message : "Failed to load bid deletion requests";
+      toast.error(message);
+      setPendingBidDeletions([]);
+    } finally {
+      setIsLoadingBidDeletions(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (loading) return;
     if (!isAdmin) {
@@ -310,7 +353,9 @@ export default function ToReviewPage() {
     fetchSubmissions();
     fetchPayments();
     fetchBids();
-  }, [fetchSubmissions, fetchPayments, fetchBids, isAdmin, navigate, loading]);
+    fetchOffers();
+    fetchBidDeletions();
+  }, [fetchSubmissions, fetchPayments, fetchBids, fetchOffers, fetchBidDeletions, isAdmin, navigate, loading]);
 
   // Auto-refresh on interval and when the tab regains focus
   useEffect(() => {
@@ -318,12 +363,16 @@ export default function ToReviewPage() {
       void fetchSubmissions();
       void fetchPayments();
       void fetchBids();
+      void fetchOffers();
+      void fetchBidDeletions();
     };
 
     const intervalId = window.setInterval(() => {
       void fetchSubmissions();
       void fetchPayments();
       void fetchBids();
+      void fetchOffers();
+      void fetchBidDeletions();
     }, 20000);
 
     window.addEventListener("focus", handleFocus);
@@ -388,6 +437,61 @@ export default function ToReviewPage() {
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "Failed to update bid";
+      toast.error(message);
+    } finally {
+      setProcessingDocumentId(null);
+    }
+  };
+
+  const handleOfferAction = async (
+    offerId: number,
+    action: "approve" | "reject"
+  ) => {
+    const nextStatus = action === "approve" ? "active" : "rejected";
+
+    try {
+      setProcessingDocumentId(offerId); // Reuse the processing state
+      await offersApi.updateOffer(offerId, { status: nextStatus });
+
+      setPendingOffers((prev) => prev.filter((offer) => offer.id !== offerId));
+
+      toast.success(
+        nextStatus === "active" ? "Offer approved successfully" : "Offer rejected"
+      );
+
+      // Refresh offers data to ensure UI is up to date
+      fetchOffers();
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to update offer";
+      toast.error(message);
+    } finally {
+      setProcessingDocumentId(null);
+    }
+  };
+
+  const handleBidDeletionAction = async (
+    requestId: number,
+    action: "approve" | "reject",
+    adminNotes?: string
+  ) => {
+    try {
+      setProcessingDocumentId(requestId); // Reuse the processing state
+      await adminApi.handleBidDeletionRequest(requestId, action, adminNotes);
+
+      setPendingBidDeletions((prev) => prev.filter((request) => request.id !== requestId));
+
+      toast.success(
+        action === "approve"
+          ? "Bid deletion request approved successfully"
+          : "Bid deletion request rejected successfully"
+      );
+
+      // Refresh bid deletions data to ensure UI is up to date
+      fetchBidDeletions();
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to update bid deletion request";
       toast.error(message);
     } finally {
       setProcessingDocumentId(null);
@@ -467,11 +571,11 @@ export default function ToReviewPage() {
     [payments]
   );
 
-  // Calculate total pending items (documents + payments + bids)
+  // Calculate total pending items (documents + payments + bids + offers + bid deletions)
   const totalPendingItems = useMemo(
     () =>
-      pendingSubmissions.length + pendingPayments.length + pendingBids.length,
-    [pendingSubmissions.length, pendingPayments.length, pendingBids.length]
+      pendingSubmissions.length + pendingPayments.length + pendingBids.length + pendingOffers.length + pendingBidDeletions.length,
+    [pendingSubmissions.length, pendingPayments.length, pendingBids.length, pendingOffers.length, pendingBidDeletions.length]
   );
 
   const reviewedSubmissions = useMemo(
@@ -518,7 +622,7 @@ export default function ToReviewPage() {
               Pending Documents and Payments
             </h2>
             <div className="flex items-center gap-2">
-              {(isLoading || isLoadingPayments) && <Loading message="" />}
+              {(isLoading || isLoadingPayments || isLoadingBids || isLoadingOffers || isLoadingBidDeletions) && <Loading message="" />}
               <span className="px-3 py-1 text-sm font-medium bg-yellow-100 text-yellow-700 rounded">
                 {totalPendingItems} pending
               </span>
@@ -526,7 +630,7 @@ export default function ToReviewPage() {
           </div>
         </div>
         <div className="p-6">
-          {isLoading || isLoadingPayments || isLoadingBids ? (
+          {isLoading || isLoadingPayments || isLoadingBids || isLoadingOffers || isLoadingBidDeletions ? (
             <div className="text-center py-12">
               <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600">Loading pending items...</p>
@@ -535,14 +639,7 @@ export default function ToReviewPage() {
             <div className="text-center py-12">
               <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600">
-                No pending documents or payments to review
-              </p>
-            </div>
-          ) : totalPendingItems === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">
-                No pending documents, payments, or bids to review
+                No pending documents, payments, bids, offers, or bid deletions to review
               </p>
             </div>
           ) : (
@@ -808,6 +905,252 @@ export default function ToReviewPage() {
                                 <Eye className="w-3 h-3" />
                                 Click to view complete details
                               </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Pending Offers Section */}
+              {pendingOffers.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Offers
+                  </h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {pendingOffers.map((offer) => (
+                      <div
+                        key={offer.id}
+                        className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => {
+                          // Fetch the full bid details
+                          adminApi.getBids({ id: offer.bid }).then((res) => {
+                            if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+                              setSelectedBid(res.data[0]);
+                            }
+                          });
+                        }}
+                      >
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-300">
+                            <Truck className="w-5 h-5 text-gray-700" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-medium text-gray-900">
+                                {offer.carrier_name || "Unknown Carrier"}
+                              </p>
+                              <span className="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-700">
+                                Offer
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600">
+                              For: {offer.bid_title || "Unknown Bid"}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Submitted on{" "}
+                              {offer.created_at
+                                ? new Date(offer.created_at).toLocaleDateString()
+                                : "Unknown"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <p className="text-sm font-medium text-gray-500 mb-3">
+                          Offer Details
+                        </p>
+                        <div className="space-y-3">
+                          {/* Price and Shipper Info */}
+                          <div className="border rounded-lg px-4 py-3 bg-gray-50">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <div className="grid grid-cols-2 gap-4 mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <DollarSign className="w-4 h-4 text-green-600" />
+                                    <div>
+                                      <p className="text-xs text-gray-500">Price</p>
+                                      <p className="font-semibold text-gray-900">
+                                        {offer.price ? `ETB ${parseFloat(offer.price).toLocaleString()}` : "—"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Package className="w-4 h-4 text-blue-600" />
+                                    <div>
+                                      <p className="text-xs text-gray-500">Shipper</p>
+                                      <p className="font-semibold text-gray-900">
+                                        {offer.shipper_name || "—"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 text-xs text-gray-600">
+                                  <div className="flex items-center gap-2">
+                                    <Clock className="w-3 h-3 text-purple-600" />
+                                    <span><strong>Delivery:</strong> {offer.delivery_time || "—"}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Truck className="w-3 h-3 text-orange-600" />
+                                    <span><strong>Vehicle:</strong> {offer.vehicle_type || "—"}</span>
+                                  </div>
+                                </div>
+                                {offer.cpo_service_number && (
+                                  <div className="flex items-center gap-2 mt-2 text-xs text-gray-600">
+                                    <FileIcon className="w-3 h-3 text-gray-600" />
+                                    <span><strong>CPO:</strong> {offer.cpo_service_number}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 ml-2" onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Approve offer"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOfferAction(offer.id, "approve");
+                                  }}
+                                  disabled={processingDocumentId === offer.id}
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-50 transition-all duration-200 rounded-full"
+                                >
+                                  <Check className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Reject offer"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOfferAction(offer.id, "reject");
+                                  }}
+                                  disabled={processingDocumentId === offer.id}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200 rounded-full"
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-yellow-100 text-yellow-700">
+                                  PENDING
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Notes */}
+                          {offer.notes && (
+                            <div className="border rounded-lg px-4 py-3 bg-gray-50">
+                              <div className="flex items-start gap-2">
+                                <FileIcon className="w-4 h-4 text-gray-600 mt-0.5" />
+                                <div className="flex-1">
+                                  <p className="text-xs text-gray-500 mb-1">Notes</p>
+                                  <p className="text-sm text-gray-700">{offer.notes}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* View Bid Details Link */}
+                          <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-center">
+                            <p className="text-xs text-blue-600 font-medium flex items-center gap-1">
+                              <Eye className="w-3 h-3" />
+                              Click to view bid details
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Pending Bid Deletion Requests Section */}
+              {pendingBidDeletions.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Bid Deletion Requests
+                  </h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {pendingBidDeletions.map((request) => (
+                      <div
+                        key={request.id}
+                        className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-red-300">
+                            <Trash2 className="w-5 h-5 text-gray-700" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-medium text-gray-900">
+                                {request.shipper_name || "Unknown Shipper"}
+                              </p>
+                              <span className="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-700">
+                                Deletion Request
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600">
+                              For: {request.bid_title || "Unknown Bid"}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Requested on{" "}
+                              {request.created_at
+                                ? new Date(request.created_at).toLocaleDateString()
+                                : "Unknown"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <p className="text-sm font-medium text-gray-500 mb-3">
+                          Deletion Reason
+                        </p>
+                        <div className="space-y-3">
+                          <div className="border rounded-lg px-4 py-3 bg-gray-50">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <p className="text-sm text-gray-700 mb-2">
+                                  {request.reason || "No reason provided"}
+                                </p>
+                                <div className="text-xs text-gray-600">
+                                  <p><strong>Shipper:</strong> {request.shipper_name}</p>
+                                  <p><strong>Email:</strong> {request.shipper_email}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1.5 ml-2" onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Approve deletion request"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleBidDeletionAction(request.id, "approve");
+                                  }}
+                                  disabled={processingDocumentId === request.id}
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-50 transition-all duration-200 rounded-full"
+                                >
+                                  <Check className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Reject deletion request"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const notes = prompt("Please provide a reason for rejecting this deletion request:");
+                                    if (notes !== null) {
+                                      handleBidDeletionAction(request.id, "reject", notes);
+                                    }
+                                  }}
+                                  disabled={processingDocumentId === request.id}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200 rounded-full"
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-yellow-100 text-yellow-700">
+                                  PENDING
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>

@@ -13,6 +13,7 @@ import {
 import { useAuthContext } from "@/hooks/useAuth";
 import { bidsApi } from "@/lib/api";
 import type { BackendBidDetail } from "@/types";
+import BidDeletionRequestModal from "@/components/BidDeletionRequestModal";
 
 export default function MyBidsPage() {
   const navigate = useNavigate();
@@ -37,6 +38,12 @@ export default function MyBidsPage() {
       status?: string;
     }>
   >([]);
+  const [showDeletionModal, setShowDeletionModal] = useState(false);
+  const [selectedBidForDeletion, setSelectedBidForDeletion] = useState<{
+    id: number;
+    title: string;
+  } | null>(null);
+  const [isSubmittingDeletion, setIsSubmittingDeletion] = useState(false);
 
   const formatDate = useCallback((value?: string | null) => {
     if (!value) return "—";
@@ -112,6 +119,41 @@ export default function MyBidsPage() {
     if (!status) return "—";
     return status.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
   };
+
+  const handleDeleteBid = useCallback((bid: { id: number; title: string }) => {
+    setSelectedBidForDeletion(bid);
+    setShowDeletionModal(true);
+  }, []);
+
+  const handleDeletionSubmit = useCallback(async (reason: string) => {
+    if (!selectedBidForDeletion) return;
+
+    try {
+      setIsSubmittingDeletion(true);
+      await bidsApi.requestBidDeletion(selectedBidForDeletion.id, reason);
+
+      // Close modal and reset state
+      setShowDeletionModal(false);
+      setSelectedBidForDeletion(null);
+
+      // Refresh bids to show updated status
+      await loadMyBids();
+
+      // Show success message
+      // Note: We could add a toast here if needed
+    } catch (error: any) {
+      console.error("Error requesting bid deletion:", error);
+      const errorMessage = error?.message || "Failed to submit deletion request";
+      alert(`Error: ${errorMessage}`);
+    } finally {
+      setIsSubmittingDeletion(false);
+    }
+  }, [selectedBidForDeletion]);
+
+  const handleDeletionCancel = useCallback(() => {
+    setShowDeletionModal(false);
+    setSelectedBidForDeletion(null);
+  }, []);
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -254,6 +296,7 @@ export default function MyBidsPage() {
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2 text-red-600 hover:text-red-700"
+                        onClick={() => handleDeleteBid({ id: bid.id, title: bid.title })}
                       >
                         <Trash2 className="w-4 h-4" />
                         Delete
@@ -323,6 +366,17 @@ export default function MyBidsPage() {
           </div>
         </div>
       </div>
+
+      {/* Bid Deletion Request Modal */}
+      {selectedBidForDeletion && (
+        <BidDeletionRequestModal
+          isOpen={showDeletionModal}
+          onClose={handleDeletionCancel}
+          onSubmit={handleDeletionSubmit}
+          isLoading={isSubmittingDeletion}
+          bidTitle={selectedBidForDeletion.title}
+        />
+      )}
     </div>
   );
 }

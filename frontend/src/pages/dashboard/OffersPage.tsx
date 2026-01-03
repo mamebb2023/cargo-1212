@@ -193,7 +193,9 @@ export default function OffersPage() {
       case "rejected":
         return <XCircle className="w-5 h-5 text-red-600" />;
       case "active":
-        return <Clock className="w-5 h-5 text-blue-600" />;
+        return <CheckCircle className="w-5 h-5 text-blue-600" />;
+      case "pending":
+        return <Clock className="w-5 h-5 text-yellow-600" />;
       default:
         return <Clock className="w-5 h-5 text-gray-600" />;
     }
@@ -207,6 +209,8 @@ export default function OffersPage() {
         return "bg-red-100 text-red-700 border-red-200";
       case "active":
         return "bg-blue-100 text-blue-700 border-blue-200";
+      case "pending":
+        return "bg-yellow-100 text-yellow-700 border-yellow-200";
       default:
         return "bg-gray-100 text-gray-700 border-gray-200";
     }

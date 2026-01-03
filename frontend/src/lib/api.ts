@@ -368,6 +368,13 @@ export const bidsApi = {
   getMyBids: async () => {
     return authRequest('/bids/my-bids/');
   },
+
+  requestBidDeletion: async (bidId: number, reason: string) => {
+    return authRequest(`/bids/${bidId}/request-deletion/`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
 };
 
 // Offers API
@@ -379,6 +386,13 @@ export const offersApi = {
   createOffer: async (offerData: Record<string, unknown>) => {
     return authRequest('/offers/', {
       method: 'POST',
+      body: JSON.stringify(offerData),
+    });
+  },
+
+  updateOffer: async (offerId: number, offerData: Record<string, unknown>) => {
+    return authRequest(`/offers/${offerId}/`, {
+      method: 'PATCH',
       body: JSON.stringify(offerData),
     });
   },
@@ -545,6 +559,19 @@ export const adminApi = {
     const queryString = buildQueryString(params);
     const endpoint = `/admin/offers/${queryString ? `?${queryString}` : ''}`;
     return authRequest(endpoint);
+  },
+
+  getBidDeletionRequests: async (params?: QueryParams) => {
+    const queryString = buildQueryString(params);
+    const endpoint = `/admin/bid-deletion-requests/${queryString ? `?${queryString}` : ''}`;
+    return authRequest(endpoint);
+  },
+
+  handleBidDeletionRequest: async (requestId: number, action: string, adminNotes?: string) => {
+    return authRequest(`/admin/bid-deletion-requests/${requestId}/handle/`, {
+      method: 'POST',
+      body: JSON.stringify({ action, admin_notes: adminNotes }),
+    });
   },
 
   getRatings: async () => {
