@@ -40,6 +40,7 @@ export interface BidDetail {
   cargoType: string;
   weight: string;
   deadline: string;
+  offers_deadline: string;
   budget: string;
   status?: string;
   postedDate?: string;
@@ -79,6 +80,7 @@ export interface BackendBidDetail {
   cargo_type: string;
   weight: string;
   deadline: string;
+  offers_deadline: string;
   budget: string;
   status?: string;
   created_at?: string;
@@ -115,6 +117,7 @@ export interface LimitedBidDetail {
   cargo_type: string;
   weight: string;
   deadline: string;
+  offers_deadline: string;
   budget: string;
   offers_count: number;
   lowest_offer?: string | null;
@@ -185,6 +188,7 @@ export interface DashboardBidSummary {
   weight: string;
   cargo_type: string;
   deadline: string;
+  offers_deadline: string;
   created_at: string;
   offers_count: number;
   lowest_offer?: string | null;
@@ -237,6 +241,7 @@ export interface AdminBid {
   special_requirements?: string;
   status?: string;
   deadline?: string;
+  offers_deadline?: string;
   offers_count?: number;
   lowest_offer?: string | null;
   bid_files_url?: string | null;

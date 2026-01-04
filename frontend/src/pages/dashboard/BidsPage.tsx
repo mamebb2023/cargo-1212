@@ -18,6 +18,7 @@ type ProcessedBid = DashboardBidSummary & {
   weight: string;
   offers: number; // This is offers_count from API
   deadline: string;
+  offersDeadline: string;
   budget: string;
   lowestOffer?: string | null;
   origin: string;
@@ -155,6 +156,7 @@ export default function BidsPage() {
       offers: bid.offers_count, // Map offers_count to offers
       cargoType: bid.cargo_type, // Map cargo_type to cargoType
       lowestOffer: bid.lowest_offer, // Map lowest_offer to lowestOffer
+      offersDeadline: bid.offers_deadline, // Map offers_deadline to offersDeadline
     }));
 
   // Security check: Ensure we never show full details for unpaid bids
@@ -166,6 +168,7 @@ export default function BidsPage() {
       : {
           budget: undefined,
           deadline: undefined,
+          offersDeadline: undefined,
           lowestOffer: undefined,
           origin: bid.origin ? bid.origin.substring(0, 1) + "***" : undefined,
           destination: bid.destination
@@ -460,14 +463,13 @@ export default function BidsPage() {
                   <div className="flex flex-col gap-4">
                     <div className="flex justify-between items-center">
                       <div>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {bid.title}
+                        </h3>
 
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {bid.title}
-                    </h3>
-
-                    <p className="text-sm text-gray-600 line-clamp-2">
-                      {bid.description}
-                    </p>
+                        <p className="text-sm text-gray-600 line-clamp-2">
+                          {bid.description}
+                        </p>
                       </div>
 
                       <div className="flex items-center justify-between gap-3">
@@ -483,7 +485,7 @@ export default function BidsPage() {
 
                       {/* Company Rating - clickable */}
                       <div 
-                        className="flex flex-col items-end gap-1 flex-shrink-0 cursor-pointer p-2 hover:bg-gray-500/10  rounded-lg transition-all"
+                        className="flex flex-col items-end gap-1 shrink-0 cursor-pointer p-2 hover:bg-gray-500/10  rounded-lg transition-all"
                         onClick={() => {
                           setRatingTarget({
                             userId: bid.user.id,
@@ -521,16 +523,20 @@ export default function BidsPage() {
                             <span className="truncate">{bid.cargoType} ({bid.weight})</span>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm text-gray-500">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-gray-500">
                           <div>
                             <strong className="text-xs">Budget:</strong>
                             <div className="text-gray-900">{bid.budget}</div>
                           </div>
+                        <div>
+                            <strong className="text-xs">Offers Deadline:</strong>
+                            <div className="text-gray-900">{bid.offersDeadline}</div>
+                          </div>
                           <div>
-                            <strong className="text-xs">Deadline:</strong>
+                            <strong className="text-xs">Delivery Deadline:</strong>
                             <div className="text-gray-900">{bid.deadline}</div>
                           </div>
-                          <div className="col-span-2 sm:col-span-1">
+                          <div>
                             <strong className="text-xs">Offers:</strong>
                             <div className="text-gray-900">
                               {bid.offers === 0 ? "No offers" : bid.offers}
@@ -547,7 +553,7 @@ export default function BidsPage() {
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-blue-700 text-sm">
                           <svg
-                            className="w-4 h-4 flex-shrink-0"
+                            className="w-4 h-4 shrink-0"
                             fill="currentColor"
                             viewBox="0 0 20 20"
                           >

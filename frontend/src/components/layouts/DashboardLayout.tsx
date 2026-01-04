@@ -95,7 +95,7 @@ export default function DashboardLayout() {
     },
     user?.role !== "shipper" && {
       icon: FileText,
-      label: "Offers",
+      label: "My Offers",
       path: "/dashboard/offers",
     },
     (!isCarrier || isAdmin) && {

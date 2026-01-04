@@ -148,7 +148,7 @@ export default function OffersPage() {
       setProcessingAction(offerId);
       await offersApi.acceptOffer(offerId);
       toast.success("Offer accepted successfully!");
-      fetchOffers(); // Refresh the list
+      fetchOffers();
     } catch {
       toast.error("Failed to accept offer");
     } finally {
@@ -161,7 +161,7 @@ export default function OffersPage() {
       setProcessingAction(offerId);
       await offersApi.rejectOffer(offerId);
       toast.success("Offer rejected successfully!");
-      fetchOffers(); // Refresh the list
+      fetchOffers();
     } catch {
       toast.error("Failed to reject offer");
     } finally {
@@ -174,7 +174,7 @@ export default function OffersPage() {
       setProcessingAction(offerId);
       await offersApi.completeDelivery(offerId);
       toast.success("Delivery marked as complete!");
-      fetchOffers(); // Refresh the list
+      fetchOffers();
     } catch {
       toast.error("Failed to mark delivery as complete");
     } finally {
@@ -232,13 +232,15 @@ export default function OffersPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/dashboard")}
-          className="p-2"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
+        {user?.role !== "carrier" && (
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/my-bids")}
+            className="p-2"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+        )}
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
             {bidId ? "Offers for the bid" : "My Offers"}
@@ -355,7 +357,6 @@ export default function OffersPage() {
               </div>
 
               <div>
-                {/* Offer details */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   <div className="flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-green-600" />
@@ -398,7 +399,6 @@ export default function OffersPage() {
                   </div>
                 </div>
 
-                {/* Carrier Information */}
                 <div className="bg-blue-50 rounded-lg p-4 mb-4">
                   <h4 className="text-sm font-semibold text-gray-800 mb-2">
                     Carrier Information
@@ -445,7 +445,6 @@ export default function OffersPage() {
                   </div>
                 </div>
 
-                {/* Notes */}
                 {offer.notes && (
                   <div className="bg-gray-50 rounded-lg p-3 mb-4">
                     <p className="text-sm font-medium text-gray-700 mb-1">
@@ -455,13 +454,12 @@ export default function OffersPage() {
                   </div>
                 )}
 
-                {/* Timestamp */}
                 <div className="flex items-center justify-between">
                   <div className="text-xs text-gray-500">
                     Submitted on {formatDate(offer.created_at)}
                   </div>
 
-                  {user?.role === "shipper" && !offer.delivery_completed && (
+                  {user?.role === "shipper" && offer.status === "accepted" && !offer.delivery_completed && (
                     <Button
                       size="sm"
                       variant="outline"

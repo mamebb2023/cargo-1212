@@ -2,6 +2,12 @@ from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.utils import timezone
+from datetime import timedelta
+
+
+def default_offers_deadline():
+    """Default offers deadline: 7 days from now"""
+    return timezone.now().date() + timedelta(days=7)
 
 
 class BidDeletionRequest(models.Model):
@@ -14,21 +20,15 @@ class BidDeletionRequest(models.Model):
     ]
 
     bid = models.OneToOneField(
-        "Bid",
-        on_delete=models.CASCADE,
-        related_name="deletion_request"
+        "Bid", on_delete=models.CASCADE, related_name="deletion_request"
     )
     requested_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="bid_deletion_requests"
+        related_name="bid_deletion_requests",
     )
     reason = models.TextField(help_text="Reason for deletion request")
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default="pending"
-    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
 
     # Admin review fields
     reviewed_by = models.ForeignKey(
@@ -36,12 +36,9 @@ class BidDeletionRequest(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="reviewed_deletion_requests"
+        related_name="reviewed_deletion_requests",
     )
-    admin_notes = models.TextField(
-        blank=True,
-        help_text="Admin notes during review"
-    )
+    admin_notes = models.TextField(blank=True, help_text="Admin notes during review")
 
     created_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)
@@ -50,7 +47,9 @@ class BidDeletionRequest(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"Deletion request for '{self.bid.title}' by {self.requested_by.full_name}"
+        return (
+            f"Deletion request for '{self.bid.title}' by {self.requested_by.full_name}"
+        )
 
     def approve_request(self, admin_user, notes=""):
         """Approve the deletion request"""
@@ -69,6 +68,7 @@ class BidDeletionRequest(models.Model):
 
         # Create notification for the shipper (without related_bid since it's deleted)
         from apps.notifications.models import Notification
+
         Notification.create_notification(
             user=self.requested_by,
             title="Bid Deletion Approved",
@@ -87,6 +87,7 @@ class BidDeletionRequest(models.Model):
 
         # Create notification for the shipper
         from apps.notifications.models import Notification
+
         Notification.create_notification(
             user=self.requested_by,
             title="Bid Deletion Rejected",
@@ -119,7 +120,11 @@ class Bid(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     budget = models.DecimalField(
-        max_digits=12, decimal_places=2, validators=[MinValueValidator(0)], null=True, blank=True
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        null=True,
+        blank=True,
     )
 
     # Location information
@@ -136,6 +141,9 @@ class Bid(models.Model):
     # Status and dates
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     deadline = models.DateField()
+    offers_deadline = models.DateField(
+        help_text="Deadline for submitting offers", default=default_offers_deadline
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -149,11 +157,11 @@ class Bid(models.Model):
 
     # Selected offer (when bid is closed)
     selected_offer = models.ForeignKey(
-        'offers.Offer',
+        "offers.Offer",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='selected_for_bids'
+        related_name="selected_for_bids",
     )
 
     class Meta:

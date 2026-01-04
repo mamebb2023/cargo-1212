@@ -28,6 +28,7 @@ class BidSerializer(serializers.ModelSerializer):
             "special_requirements",
             "status",
             "deadline",
+            "offers_deadline",
             "bid_files",
             "bid_files_url",
             "offers_count",
@@ -67,6 +68,7 @@ class BidCreateSerializer(serializers.ModelSerializer):
             "cargo_type",
             "special_requirements",
             "deadline",
+            "offers_deadline",
             "bid_files",
         ]
 
@@ -81,6 +83,22 @@ class BidCreateSerializer(serializers.ModelSerializer):
         if value <= timezone.now().date():
             raise serializers.ValidationError("Deadline must be in the future")
         return value
+
+    def validate_offers_deadline(self, value):
+        from django.utils import timezone
+
+        if value <= timezone.now().date():
+            raise serializers.ValidationError("Offers deadline must be in the future")
+        return value
+
+    def validate(self, data):
+        """Validate that offers_deadline is before deadline"""
+        if data.get('offers_deadline') and data.get('deadline'):
+            if data['offers_deadline'] >= data['deadline']:
+                raise serializers.ValidationError(
+                    "Offers deadline must be before the cargo delivery deadline"
+                )
+        return data
 
     def create(self, validated_data):
         validated_data["user"] = self.context["request"].user
@@ -107,6 +125,7 @@ class BidListSerializer(serializers.ModelSerializer):
             "cargo_type",
             "status",
             "deadline",
+            "offers_deadline",
             "offers_count",
             "lowest_offer",
             "user",
@@ -161,6 +180,7 @@ class BidDetailSerializer(serializers.ModelSerializer):
             "special_requirements",
             "status",
             "deadline",
+            "offers_deadline",
             "bid_files",
             "bid_files_url",
             "offers_count",

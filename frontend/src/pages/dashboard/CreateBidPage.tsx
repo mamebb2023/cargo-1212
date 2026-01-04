@@ -32,6 +32,7 @@ export default function CreateBidPage() {
     budget: "",
     cpoAmount: "",
     deadline: "",
+    offersDeadline: "",
     specialRequirements: "",
   });
 
@@ -100,6 +101,7 @@ export default function CreateBidPage() {
       "weight",
       "cpoAmount",
       "deadline",
+      "offersDeadline",
     ];
 
     const missingFields = requiredFields.filter(
@@ -133,6 +135,7 @@ export default function CreateBidPage() {
         cargo_type: formData.cargoType,
         weight: formData.weight,
         deadline: formData.deadline,
+        offers_deadline: formData.offersDeadline,
         special_requirements: formData.specialRequirements || "",
       };
       
@@ -250,6 +253,12 @@ export default function CreateBidPage() {
                       Deadline
                     </p>
                     <p className="text-gray-900">{formData.deadline}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">
+                      Offers Submission Deadline
+                    </p>
+                    <p className="text-gray-900">{formData.offersDeadline}</p>
                   </div>
                   {formData.specialRequirements && (
                     <div className="col-span-2">
@@ -482,17 +491,32 @@ export default function CreateBidPage() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="deadline">
-              Deadline <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="deadline"
-              type="date"
-              value={formData.deadline}
-              onChange={(e) => handleChange("deadline", e.target.value)}
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="deadline">
+                Cargo Delivery Deadline <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="deadline"
+                type="date"
+                value={formData.deadline}
+                onChange={(e) => handleChange("deadline", e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="offersDeadline">
+                Offers Submission Deadline <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="offersDeadline"
+                type="date"
+                value={formData.offersDeadline}
+                onChange={(e) => handleChange("offersDeadline", e.target.value)}
+                required
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

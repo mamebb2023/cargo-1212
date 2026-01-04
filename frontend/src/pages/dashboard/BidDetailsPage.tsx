@@ -130,6 +130,7 @@ export default function BidDetailsPage() {
           cargoType: limitedData.cargo_type || "",
           weight: limitedData.weight,
           deadline: limitedData.deadline,
+          offers_deadline: limitedData.offers_deadline,
           budget: limitedData.budget,
           postedDate: "",
           offers: limitedData.offers_count,
@@ -149,6 +150,7 @@ export default function BidDetailsPage() {
           cargoType: fullData.cargo_type || fullData.cargoType || "",
           weight: fullData.weight,
           deadline: fullData.deadline,
+          offers_deadline: fullData.offers_deadline,
           budget: fullData.budget,
           postedDate: fullData.created_at,
           offers: fullData.offers_count,
@@ -363,11 +365,23 @@ export default function BidDetailsPage() {
 
       {/* Basic Information */}
       <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
-        <div>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-            {bid.title}
-          </h2>
-          <p className="text-gray-600 line-clamp-3">{bid.description}</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+              {bid.title}
+            </h2>
+            <p className="text-gray-600 line-clamp-3">{bid.description}</p>
+          </div>
+
+          <div className="flex items-start gap-3 p-3 bg-red-100 border-2 border-red-500 rounded-xl">
+            <Calendar className="w-5 h-5 text-red-600 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-red-600">
+                Offers Submission Deadline
+              </p>
+              <p className="text-gray-900">{bid.offers_deadline}</p>
+            </div>
+          </div>
         </div>
 
         {/* Show additional details only if payment not required */}
@@ -401,11 +415,13 @@ export default function BidDetailsPage() {
                   <Calendar className="w-5 h-5 text-blue-600 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-gray-500">
-                      Deadline
+                      Cargo Delivery Deadline
                     </p>
                     <p className="text-gray-900">{bid.deadline}</p>
                   </div>
                 </div>
+
+                
 
                 <div className="flex items-start gap-3">
                   <Truck className="w-5 h-5 text-blue-600 mt-0.5" />
@@ -530,7 +546,7 @@ export default function BidDetailsPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Shipper Information
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <p className="text-sm font-medium text-gray-500">
                     Company Name
@@ -541,7 +557,7 @@ export default function BidDetailsPage() {
                   <p className="text-sm font-medium text-gray-500">Phone</p>
                   <p className="text-gray-900">{bid.shipperPhone}</p>
                 </div>
-                <div className="md:col-span-2">
+                <div>
                   <p className="text-sm font-medium text-gray-500">Email</p>
                   <p className="text-gray-900">{bid.shipperEmail}</p>
                 </div>
