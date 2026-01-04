@@ -21,6 +21,7 @@ class OfferBidSerializer(serializers.ModelSerializer):
             "weight",
             "budget",
             "status",
+            "deadline",
             "user",
         ]
 

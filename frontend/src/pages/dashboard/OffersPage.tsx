@@ -30,6 +30,7 @@ interface Offer {
     weight: string;
     budget: string;
     status: string;
+    deadline: string;
     user?: {
       id: number;
       company_name?: string;
@@ -144,31 +145,31 @@ export default function OffersPage() {
     }
   }, [bidId, user?.id]);
 
-  const handleAcceptOffer = async (offerId: number) => {
-    try {
-      setProcessingAction(offerId);
-      await offersApi.acceptOffer(offerId);
-      toast.success("Offer accepted successfully!");
-      fetchOffers();
-    } catch {
-      toast.error("Failed to accept offer");
-    } finally {
-      setProcessingAction(null);
-    }
-  };
+  // const handleAcceptOffer = async (offerId: number) => {
+  //   try {
+  //     setProcessingAction(offerId);
+  //     await offersApi.acceptOffer(offerId);
+  //     toast.success("Offer accepted successfully!");
+  //     fetchOffers();
+  //   } catch {
+  //     toast.error("Failed to accept offer");
+  //   } finally {
+  //     setProcessingAction(null);
+  //   }
+  // };
 
-  const handleRejectOffer = async (offerId: number) => {
-    try {
-      setProcessingAction(offerId);
-      await offersApi.rejectOffer(offerId);
-      toast.success("Offer rejected successfully!");
-      fetchOffers();
-    } catch {
-      toast.error("Failed to reject offer");
-    } finally {
-      setProcessingAction(null);
-    }
-  };
+  // const handleRejectOffer = async (offerId: number) => {
+  //   try {
+  //     setProcessingAction(offerId);
+  //     await offersApi.rejectOffer(offerId);
+  //     toast.success("Offer rejected successfully!");
+  //     fetchOffers();
+  //   } catch {
+  //     toast.error("Failed to reject offer");
+  //   } finally {
+  //     setProcessingAction(null);
+  //   }
+  // };
 
   const handleCompleteDelivery = async (offerId: number) => {
     try {
@@ -242,15 +243,24 @@ export default function OffersPage() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
         )}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            {bidId ? "Offers for the bid" : "My Offers"}
-          </h1>
-          <p className="text-gray-600 mt-1">
-            {bidId
-              ? "View and manage offers received for this bid"
-              : "View and track all offers you've submitted"}
-          </p>
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold text-gray-900">
+              {bidId ? "Offers for the bid" : "My Offers"}
+            </h1>
+            <p className="text-gray-600 mt-1">
+              {bidId
+                ? "View and manage offers received for this bid"
+                : "View and track all offers you've submitted"}
+            </p>
+          </div>
+
+          {bidId && (
+            <div className="flex items-center gap-2 text-blue-600 text-sm font-medium">
+              <Clock className="w-4 h-4" />
+              Auto-selection pending <b>{"("}deadline: {offers.length > 0 ? new Date(offers[0].bid.deadline).toLocaleDateString() : ''}{")"}</b>
+            </div>
+          )}
         </div>
       </div>
 
@@ -312,64 +322,28 @@ export default function OffersPage() {
                   </div>
                 </div>
 
-                {/* Action buttons */}
-                {bidId ? (
-                  <div className="flex gap-2">
-                    {offer.status === "active" && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => handleAcceptOffer(offer.id)}
-                          disabled={processingAction === offer.id}
-                        >
-                          {processingAction === offer.id
-                            ? "Processing..."
-                            : "Accept"}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleRejectOffer(offer.id)}
-                          disabled={processingAction === offer.id}
-                          className="border-red-300 text-red-600 hover:bg-red-50"
-                        >
-                          {processingAction === offer.id
-                            ? "Processing..."
-                            : "Reject"}
-                        </Button>
-                      </>
-                    )}
-                    {offer.status === "accepted" && (
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
-                          <CheckCircle className="w-4 h-4" />
-                          Accepted
-                        </div>
-                        {/* Mark delivery complete button for shippers */}
-                      </div>
-                    )}
-                    {offer.status === "rejected" && (
-                      <div className="flex items-center gap-2 text-red-600 text-sm font-medium">
-                        <XCircle className="w-4 h-4" />
-                        Rejected
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    {getStatusIcon(offer.status)}
-                    <span
-                      className={`text-sm font-medium ${getStatusColor(
-                        offer.status
-                      )}`}
-                    >
-                      {offer.status.charAt(0).toUpperCase() +
-                        offer.status.slice(1)}
-                    </span>
-                  </div>
-                )}
               </div>
+                {/* Status display - automatic selection */}
+                <div className="flex gap-2 items-center">
+                  {/* {offer.status === "active" && bidId && (
+                    <div className="flex items-center gap-2 text-blue-600 text-sm font-medium">
+                      <Clock className="w-4 h-4" />
+                      Auto-selection pending (deadline: {offer.bid.deadline})
+                    </div>
+                  )} */}
+                  {offer.status === "accepted" && bidId && (
+                    <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
+                      <CheckCircle className="w-4 h-4" />
+                      Auto-selected - Waiting for delivery completion
+                    </div>
+                  )}
+                  {offer.status === "rejected" && bidId && (
+                    <div className="flex items-center gap-2 text-red-600 text-sm font-medium">
+                      <XCircle className="w-4 h-4" />
+                      Not Selected
+                    </div>
+                  )}
+                </div>
 
               <div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
