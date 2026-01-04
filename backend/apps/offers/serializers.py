@@ -22,6 +22,7 @@ class OfferBidSerializer(serializers.ModelSerializer):
             "budget",
             "status",
             "deadline",
+            "offers_deadline",
             "user",
         ]
 

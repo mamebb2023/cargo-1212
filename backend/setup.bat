@@ -82,7 +82,16 @@ if errorlevel 1 (
     goto :end
 )
 
-REM 9) Start development server
+REM 9) Start auto-selection monitor in background
+echo
+echo Starting Auto-Selection Monitor
+echo ===============================
+start "Cargo1212 Auto-Selection" cmd /c "auto_select_monitor.bat"
+
+REM Small delay to let the monitor start
+timeout /t 2 /nobreak > nul
+
+REM 10) Start development server
 echo
 echo Starting Django development server
 echo ==================================

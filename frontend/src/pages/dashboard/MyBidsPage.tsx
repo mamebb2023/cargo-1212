@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
+  Plus,
 } from "lucide-react";
 import { useAuthContext } from "@/hooks/useAuth";
 import { bidsApi } from "@/lib/api";
@@ -159,7 +160,7 @@ export default function MyBidsPage() {
   const stats = useMemo(() => {
     const total = myBids.length;
     const active = myBids.filter((bid) => bid.status === "active").length;
-    const awarded = myBids.filter((bid) => bid.status === "awarded").length;
+    // const awarded = myBids.filter((bid) => bid.status === "awarded").length;
     const closed = myBids.filter((bid) => bid.status === "closed").length;
     const pending = myBids.filter((bid) => bid.status === "pending").length;
     const rejected = myBids.filter((bid) => bid.status === "rejected").length;
@@ -183,13 +184,23 @@ export default function MyBidsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">My Bids</h1>
           <p className="text-gray-600 mt-1">
             View and manage your posted freight transport bids
           </p>
         </div>
+        {isShipper && (
+          <Button
+            variant="secondary"
+            onClick={() => navigate("/dashboard/bids/create")}
+            className="flex items-center gap-2 w-full sm:w-auto self-start"
+          >
+            <Plus className="w-4 h-4" />
+            Create a Bid
+          </Button>
+        )}
       </div>
 
       {/* Main Content Grid */}

@@ -31,6 +31,7 @@ interface Offer {
     budget: string;
     status: string;
     deadline: string;
+    offers_deadline: string;
     user?: {
       id: number;
       company_name?: string;
@@ -258,7 +259,7 @@ export default function OffersPage() {
           {bidId && (
             <div className="flex items-center gap-2 text-blue-600 text-sm font-medium">
               <Clock className="w-4 h-4" />
-              Auto-selection pending <b>{"("}deadline: {offers.length > 0 ? new Date(offers[0].bid.deadline).toLocaleDateString() : ''}{")"}</b>
+              Auto-selection pending <b>{"("}deadline: {offers.length > 0 ? new Date(offers[0].bid.offers_deadline).toLocaleDateString() : ''}{")"}</b>
             </div>
           )}
         </div>

@@ -32,18 +32,65 @@ def extract_delivery_time_days(delivery_time_str):
 
 class Command(BaseCommand):
     help = (
-        "Automatically select the best offer for bids that have passed their deadline"
+        "Automatically select the best offer for bids that have passed their offers deadline.\n"
+        "This command should be run periodically (e.g., hourly) via cron or systemd."
     )
 
-    def handle(self, *args, **options):
-        now = timezone.now().date()
-
-        # Find active bids that have passed their deadline
-        expired_bids = Bid.objects.filter(
-            status__in=["active", "approved"], deadline__lt=now
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            help="Show what would be done without making changes",
+        )
+        parser.add_argument(
+            "--verbose",
+            action="store_true",
+            help="Show detailed output",
+        )
+        parser.add_argument(
+            "--quiet",
+            action="store_true",
+            help="Suppress all output except errors",
         )
 
-        self.stdout.write(f"Found {expired_bids.count()} expired bids to process")
+    def handle(self, *args, **options):
+        dry_run = options.get("dry_run", False)
+        verbose = options.get("verbose", False)
+        quiet = options.get("quiet", False)
+
+        now = timezone.now()
+        now_date = now.date()
+        now_time = now.time()
+
+        # Debug: Show current date/time
+        self.stdout.write(f"DEBUG: Current datetime: {now}")
+        self.stdout.write(f"DEBUG: Current date: {now_date} {now_time}")
+
+        # Find active bids that have passed their offers deadline
+        expired_bids = Bid.objects.filter(
+            status__in=["active", "approved"], offers_deadline__lt=now_date
+        )
+
+        # Debug: Show query details
+        self.stdout.write(
+            f"DEBUG: Query - status__in=['active', 'approved'], offers_deadline__lt={now_date}"
+        )
+        self.stdout.write(
+            f"DEBUG: Found {expired_bids.count()} potentially expired bids"
+        )
+
+        # Debug: Show all active/approved bids with their deadlines
+        all_active_bids = Bid.objects.filter(status__in=["active", "approved"])
+        self.stdout.write(
+            f"DEBUG: Total active/approved bids: {all_active_bids.count()}"
+        )
+        for bid in all_active_bids:
+            self.stdout.write(
+                f"DEBUG: Bid '{bid.title}' - Status: {bid.status}, Offers Deadline: {bid.offers_deadline}, Expired: {bid.offers_deadline < now_date if bid.offers_deadline else 'No deadline'}"
+            )
+
+        if not quiet:
+            self.stdout.write(f"Found {expired_bids.count()} expired bids to process")
 
         processed_count = 0
 
@@ -53,14 +100,15 @@ class Command(BaseCommand):
                 continue
 
             # Get active offers for this bid
-            active_offers = list(Offer.objects.filter(bid=bid, status="active"))
+            active_offers = list(Offer.objects.filter(bid=bid))
 
             if not active_offers:
-                self.stdout.write(
-                    self.style.WARNING(
-                        f'No active offers found for bid "{bid.title}", skipping'
+                if verbose and not quiet:
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f'No active offers found for bid "{bid.title}", skipping'
+                        )
                     )
-                )
                 continue
 
             # Sort by rating (highest first), then price (lowest first), then delivery time (nearest first)
@@ -75,28 +123,46 @@ class Command(BaseCommand):
             # Select the best offer (first one after sorting)
             best_offer = active_offers[0]
 
-            self.stdout.write(
-                f"Auto-selecting offer {best_offer.id} by {best_offer.user.company_name or best_offer.user.full_name} "
-                f'for bid "{bid.title}" (rating: {best_offer.user.average_rating}, price: {best_offer.price})'
-            )
+            if not quiet:
+                self.stdout.write(
+                    f"Auto-selecting offer {best_offer.id} by {best_offer.user.company_name or best_offer.user.full_name} "
+                    f'for bid "{bid.title}" (rating: {best_offer.user.average_rating}, price: {best_offer.price})'
+                )
+
+            if dry_run:
+                if not quiet:
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f'DRY RUN: Would award bid "{bid.title}" to {best_offer.user.company_name or best_offer.user.full_name}'
+                        )
+                    )
+                processed_count += 1
+                continue
 
             try:
                 # Accept the best offer (this will award the bid and notify carriers)
                 best_offer.accept_offer()
                 processed_count += 1
 
-                self.stdout.write(
-                    self.style.SUCCESS(
-                        f'Successfully awarded bid "{bid.title}" to {best_offer.user.company_name or best_offer.user.full_name}'
+                if not quiet:
+                    self.stdout.write(
+                        self.style.SUCCESS(
+                            f'Successfully awarded bid "{bid.title}" to {best_offer.user.company_name or best_offer.user.full_name}'
+                        )
                     )
-                )
             except Exception as e:
-                self.stdout.write(
-                    self.style.ERROR(f'Failed to award bid "{bid.title}": {str(e)}')
-                )
+                if not quiet:
+                    self.stdout.write(
+                        self.style.ERROR(f'Failed to award bid "{bid.title}": {str(e)}')
+                    )
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Processed {processed_count} bids with automatic offer selection"
+        # Debug: Show final summary
+        self.stdout.write(f"DEBUG: Total bids processed: {processed_count}")
+        self.stdout.write(f"DEBUG: Total expired bids found: {expired_bids.count()}")
+
+        if not quiet:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Processed {processed_count} bids with automatic offer selection"
+                )
             )
-        )
