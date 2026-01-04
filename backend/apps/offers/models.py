@@ -53,8 +53,23 @@ class Offer(models.Model):
         # Award the bid to this carrier
         self.bid.award_bid(self)
 
-        # Reject all other offers for this bid
-        self.bid.offers.exclude(id=self.id).update(status="rejected")
+        # Reject all other offers for this bid and notify the rejected carriers
+        rejected_offers = self.bid.offers.exclude(id=self.id)
+        rejected_offers.update(status="rejected")
+
+        # Send notifications to rejected carriers
+        from apps.notifications.models import Notification
+        winning_carrier_name = self.user.company_name or self.user.full_name
+
+        for rejected_offer in rejected_offers:
+            Notification.create_notification(
+                user=rejected_offer.user,
+                title="Offer Not Selected",
+                message=f"Your offer for '{self.bid.title}' was not selected. The bid has been awarded to {winning_carrier_name}.",
+                notification_type="offer_not_selected",
+                related_bid=self.bid,
+                related_offer=rejected_offer,
+            )
 
     def reject_offer(self, admin_user=None, reason=""):
         """Reject this offer (by shipper or admin)"""

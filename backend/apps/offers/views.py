@@ -272,9 +272,9 @@ def accept_offer_view(request, offer_id):
 
     Notification.create_notification(
         user=offer.bid.user,
-        title="Bid Closed",
-        message=f"Your bid '{offer.bid.title}' has been closed with the selected offer.",
-        notification_type="bid_closed",
+        title="Bid Awarded",
+        message=f"Your bid '{offer.bid.title}' has been awarded to {offer.user.company_name or offer.user.full_name}.",
+        notification_type="bid_awarded",
         related_bid=offer.bid,
     )
 

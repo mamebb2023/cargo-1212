@@ -6,63 +6,65 @@ class Notification(models.Model):
     """Notification model for user notifications"""
 
     NOTIFICATION_TYPE_CHOICES = [
-        ('bid_created', 'Bid Created'),
-        ('offer_received', 'Offer Received'),
-        ('offer_accepted', 'Offer Accepted'),
-        ('offer_rejected', 'Offer Rejected'),
-        ('bid_closed', 'Bid Closed'),
-        ('bid_completed', 'Bid Completed'),
-        ('payment_approved', 'Payment Approved'),
-        ('payment_rejected', 'Payment Rejected'),
-        ('document_approved', 'Document Approved'),
-        ('document_rejected', 'Document Rejected'),
-        ('rating_received', 'Rating Received'),
-        ('system', 'System Notification'),
+        ("bid_created", "Bid Created"),
+        ("offer_received", "Offer Received"),
+        ("offer_accepted", "Offer Accepted"),
+        ("offer_rejected", "Offer Rejected"),
+        ("offer_not_selected", "Offer Not Selected"),
+        ("bid_awarded", "Bid Awarded"),
+        ("bid_closed", "Bid Closed"),
+        ("bid_completed", "Bid Completed"),
+        ("payment_approved", "Payment Approved"),
+        ("payment_rejected", "Payment Rejected"),
+        ("document_approved", "Document Approved"),
+        ("document_rejected", "Document Rejected"),
+        ("rating_received", "Rating Received"),
+        ("system", "System Notification"),
     ]
 
     # Relationships
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='notifications'
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications"
     )
 
     # Notification details
     title = models.CharField(max_length=255)
     message = models.TextField()
-    notification_type = models.CharField(max_length=30, choices=NOTIFICATION_TYPE_CHOICES)
+    notification_type = models.CharField(
+        max_length=30, choices=NOTIFICATION_TYPE_CHOICES
+    )
 
     # Status
     is_read = models.BooleanField(default=False)
 
     # Related objects (optional)
     related_bid = models.ForeignKey(
-        'bids.Bid',
+        "bids.Bid",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='notifications'
+        related_name="notifications",
     )
     related_offer = models.ForeignKey(
-        'offers.Offer',
+        "offers.Offer",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='notifications'
+        related_name="notifications",
     )
     related_payment = models.ForeignKey(
-        'payments.Payment',
+        "payments.Payment",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='notifications'
+        related_name="notifications",
     )
     related_document = models.ForeignKey(
-        'verification.VerificationDocument',
+        "verification.VerificationDocument",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='notifications'
+        related_name="notifications",
     )
 
     # Timestamps
@@ -70,7 +72,7 @@ class Notification(models.Model):
     read_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
 
     def __str__(self):
         return f"Notification for {self.user.full_name}: {self.title}"
@@ -85,9 +87,17 @@ class Notification(models.Model):
             self.save()
 
     @classmethod
-    def create_notification(cls, user, title, message, notification_type,
-                          related_bid=None, related_offer=None,
-                          related_payment=None, related_document=None):
+    def create_notification(
+        cls,
+        user,
+        title,
+        message,
+        notification_type,
+        related_bid=None,
+        related_offer=None,
+        related_payment=None,
+        related_document=None,
+    ):
         """Create a new notification"""
         notification = cls.objects.create(
             user=user,
@@ -97,6 +107,6 @@ class Notification(models.Model):
             related_bid=related_bid,
             related_offer=related_offer,
             related_payment=related_payment,
-            related_document=related_document
+            related_document=related_document,
         )
         return notification

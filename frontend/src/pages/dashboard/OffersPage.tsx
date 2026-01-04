@@ -271,7 +271,11 @@ export default function OffersPage() {
           {offers.map((offer) => (
             <div
               key={offer.id}
-              className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
+              className={`relative bg-white rounded-lg p-6 hover:shadow-md transition-shadow ${
+                bidId && offers.indexOf(offer) === 0
+                  ? "border-2 border-green-300 bg-green-50/30"
+                  : "border border-gray-200"
+              }`}
             >
               {/* Header with bid info and status */}
               <div className="flex items-start justify-between mb-4">
@@ -293,6 +297,11 @@ export default function OffersPage() {
                       {offer.bid.status === "awarded" && (
                         <span className="px-2 py-1 text-xs font-semibold rounded bg-purple-100 text-purple-700 border border-purple-200">
                           Awarded
+                        </span>
+                      )}
+                      {bidId && offers.indexOf(offer) === 0 && (
+                        <span className="absolute top-1 -left-7 -rotate-45 px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-700 border border-green-200">
+                          🏆 Best Offer
                         </span>
                       )}
                     </div>
