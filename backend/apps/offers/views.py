@@ -61,12 +61,9 @@ class OfferListCreateView(generics.ListCreateAPIView):
             return Offer.objects.all().order_by("-created_at")
         elif user.role == "shipper":
             # Shippers see all offers on their active/awarded bids
-            queryset = Offer.objects.all().order_by("-created_at")
-            # queryset = Offer.objects.filter(bid__user=user, bid__status__in=["active", "awarded"])
-            return queryset.order_by(
-                "-user__average_rating",
-                "price",
-            )
+            # Note: We'll do custom sorting in the list method for proper multi-criteria sorting
+            queryset = Offer.objects.filter(bid__user=user, bid__status__in=["active", "awarded"])
+            return queryset
 
         return Offer.objects.none()
 
@@ -110,12 +107,16 @@ class OfferListCreateView(generics.ListCreateAPIView):
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
 
-        # For shippers, apply final sorting by delivery time (nearest first)
+        # For shippers, apply multi-criteria sorting: price, rating, delivery time
         if request.user.role == "shipper":
             offers_list = list(queryset)
-            # Sort by delivery time (nearest first) as final tiebreaker
+            # Sort by price (lowest first), then rating (highest first), then delivery time (nearest first)
             offers_list.sort(
-                key=lambda offer: extract_delivery_time_days(offer.delivery_time)
+                key=lambda offer: (
+                    offer.price,  # Lowest price first
+                    -offer.user.average_rating,  # Highest rating first (negative for descending)
+                    extract_delivery_time_days(offer.delivery_time),  # Nearest delivery first
+                )
             )
             serializer = self.get_serializer(offers_list, many=True)
         else:

@@ -111,12 +111,14 @@ class Command(BaseCommand):
                     )
                 continue
 
-            # Sort by rating (highest first), then price (lowest first), then delivery time (nearest first)
+            # Sort by price (lowest first), then rating (highest first), then delivery time (nearest first)
             active_offers.sort(
                 key=lambda offer: (
-                    -offer.user.average_rating,  # Negative for descending
-                    offer.price,
-                    extract_delivery_time_days(offer.delivery_time),
+                    offer.price,  # Lowest price first
+                    -offer.user.average_rating,  # Highest rating first (negative for descending)
+                    extract_delivery_time_days(
+                        offer.delivery_time
+                    ),  # Nearest delivery first
                 )
             )
 
