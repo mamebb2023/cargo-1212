@@ -159,6 +159,7 @@ export default function MyBidsPage() {
   const stats = useMemo(() => {
     const total = myBids.length;
     const active = myBids.filter((bid) => bid.status === "active").length;
+    const awarded = myBids.filter((bid) => bid.status === "awarded").length;
     const closed = myBids.filter((bid) => bid.status === "closed").length;
     const pending = myBids.filter((bid) => bid.status === "pending").length;
     const rejected = myBids.filter((bid) => bid.status === "rejected").length;

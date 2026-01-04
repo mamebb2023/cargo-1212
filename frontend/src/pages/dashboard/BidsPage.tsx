@@ -148,6 +148,7 @@ export default function BidsPage() {
       (bid) =>
         bid.status === "active" ||
         bid.status === "approved" ||
+        bid.status === "awarded" ||
         bid.status === undefined
     )
     .map((bid: DashboardBidSummary) => ({
@@ -285,6 +286,7 @@ export default function BidsPage() {
                 >
                   <option value="all">All Status</option>
                   <option value="active">Active</option>
+                  <option value="awarded">Awarded</option>
                   <option value="pending">Pending</option>
                   <option value="closed">Closed</option>
                 </select>

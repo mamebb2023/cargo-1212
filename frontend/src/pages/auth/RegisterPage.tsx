@@ -9,7 +9,7 @@ import { Select } from "@/components/ui/select";
 import { registerSchema, type RegisterFormData } from "@/lib/validations";
 import { getCountries, getCitiesByCountry } from "@/constant";
 import { authApi } from "@/lib/api";
-import { Upload, FileText, X } from "lucide-react";
+import { Upload, FileText, X, Eye, EyeOff } from "lucide-react";
 import { useAuthContext } from "@/hooks/useAuth";
 
 type RegistrationStep = "form" | "role" | "documents";
@@ -48,6 +48,8 @@ export default function RegisterPage() {
   const [files, setFiles] = useState<{
     [key: string]: File | null;
   }>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<
     Partial<Record<keyof RegisterFormData, string>>
   >({});
@@ -379,18 +381,31 @@ export default function RegisterPage() {
                     <div className="flex flex-col md:flex-row gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="password">Password</Label>
-                        <Input
-                          id="password"
-                          type="password"
-                          placeholder="********"
-                          value={formData.password}
-                          onChange={(e) =>
-                            updateField("password", e.target.value)
-                          }
-                          className={
-                            errors.password ? "border-destructive" : ""
-                          }
-                        />
+                        <div className="relative">
+                          <Input
+                            id="password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="********"
+                            value={formData.password}
+                            onChange={(e) =>
+                              updateField("password", e.target.value)
+                            }
+                            className={`pr-10 ${
+                              errors.password ? "border-destructive" : ""
+                            }`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
                         {errors.password && (
                           <p className="text-xs text-destructive max-w-xs">
                             {errors.password}
@@ -402,18 +417,31 @@ export default function RegisterPage() {
                         <Label htmlFor="confirmPassword">
                           Confirm Password
                         </Label>
-                        <Input
-                          id="confirmPassword"
-                          type="password"
-                          placeholder="********"
-                          value={formData.confirmPassword}
-                          onChange={(e) =>
-                            updateField("confirmPassword", e.target.value)
-                          }
-                          className={
-                            errors.confirmPassword ? "border-destructive" : ""
-                          }
-                        />
+                        <div className="relative">
+                          <Input
+                            id="confirmPassword"
+                            type={showConfirmPassword ? "text" : "password"}
+                            placeholder="********"
+                            value={formData.confirmPassword}
+                            onChange={(e) =>
+                              updateField("confirmPassword", e.target.value)
+                            }
+                            className={`pr-10 ${
+                              errors.confirmPassword ? "border-destructive" : ""
+                            }`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
                         {errors.confirmPassword && (
                           <p className="text-xs text-destructive max-w-xs">
                             {errors.confirmPassword}

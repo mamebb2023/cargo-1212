@@ -29,6 +29,7 @@ interface Offer {
     cargo_type: string;
     weight: string;
     budget: string;
+    status: string;
     user?: {
       id: number;
       company_name?: string;
@@ -235,7 +236,7 @@ export default function OffersPage() {
         {user?.role !== "carrier" && (
           <Button
             variant="ghost"
-            onClick={() => navigate("/my-bids")}
+            onClick={() => navigate("/dashboard/my-bids")}
             className="p-2"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -289,6 +290,11 @@ export default function OffersPage() {
                         {offer.status.charAt(0).toUpperCase() +
                           offer.status.slice(1)}
                       </span>
+                      {offer.bid.status === "awarded" && (
+                        <span className="px-2 py-1 text-xs font-semibold rounded bg-purple-100 text-purple-700 border border-purple-200">
+                          Awarded
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-gray-600 mt-1">
                       {offer.bid.origin} → {offer.bid.destination} •{" "}

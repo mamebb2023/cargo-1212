@@ -20,6 +20,7 @@ class OfferBidSerializer(serializers.ModelSerializer):
             "cargo_type",
             "weight",
             "budget",
+            "status",
             "user",
         ]
 

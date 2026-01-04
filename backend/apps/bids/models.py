@@ -104,6 +104,7 @@ class Bid(models.Model):
         ("pending", "Pending"),
         ("active", "Active"),
         ("approved", "Approved"),
+        ("awarded", "Awarded"),
         ("rejected", "Rejected"),
         ("closed", "Closed"),
         ("completed", "Completed"),
@@ -196,6 +197,15 @@ class Bid(models.Model):
             self.selected_offer = selected_offer
             selected_offer.is_selected = True
             selected_offer.save()
+        self.save()
+
+    def award_bid(self, selected_offer):
+        """Award the bid to a carrier without closing it yet"""
+        self.status = "awarded"
+        self.selected_offer = selected_offer
+        selected_offer.is_selected = True
+        selected_offer.status = "accepted"
+        selected_offer.save()
         self.save()
 
     def complete_bid(self):

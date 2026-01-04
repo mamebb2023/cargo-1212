@@ -49,16 +49,12 @@ class Offer(models.Model):
         return f"Offer by {self.user.full_name} for {self.bid.title} - {self.price}"
 
     def accept_offer(self):
-        """Accept this offer and reject all others for the bid"""
-        self.status = "accepted"
-        self.is_selected = True
-        self.save()
+        """Accept this offer and reject all others for the bid - award the bid instead of closing"""
+        # Award the bid to this carrier
+        self.bid.award_bid(self)
 
         # Reject all other offers for this bid
         self.bid.offers.exclude(id=self.id).update(status="rejected")
-
-        # Close the bid
-        self.bid.close_bid(self)
 
     def reject_offer(self, admin_user=None, reason=""):
         """Reject this offer (by shipper or admin)"""
@@ -122,33 +118,77 @@ class Offer(models.Model):
         )
 
     def mark_delivery_completed(self):
-        """Mark delivery as completed"""
+        """Mark delivery as completed - allow rating before closing bid"""
         self.delivery_completed = True
         self.save()
 
-        # Mark the entire bid as completed
-        print(f"DEBUG: Before complete_bid - bid status: {self.bid.status}")
-        self.bid.status = "completed"
-        self.bid.save()
-        print(f"DEBUG: After complete_bid - bid status: {self.bid.status}")
+        # Keep bid status as "awarded" - don't close it yet
+        # The bid will be closed only after both parties have rated each other
 
-        # Create notifications for both parties
+        # Create notifications for both parties to rate each other
         from apps.notifications.models import Notification
 
         # Notify the carrier
         Notification.create_notification(
             user=self.user,
-            title="Delivery Completed",
-            message=f"The delivery for '{self.bid.title}' has been marked as completed by the shipper. You can now rate your experience.",
+            title="Delivery Completed - Please Rate",
+            message=f"The delivery for '{self.bid.title}' has been marked as completed by the shipper. Please rate your experience with the shipper.",
             notification_type="delivery_completed",
             related_bid=self.bid,
+            related_offer=self,
         )
 
         # Notify the shipper
         Notification.create_notification(
             user=self.bid.user,
-            title="Delivery Marked as Completed",
-            message=f"You have successfully marked the delivery for '{self.bid.title}' as completed. You can now rate the carrier.",
+            title="Delivery Marked as Completed - Please Rate",
+            message=f"You have successfully marked the delivery for '{self.bid.title}' as completed. Please rate the carrier.",
             notification_type="delivery_completed",
             related_bid=self.bid,
+            related_offer=self,
         )
+
+    def check_and_close_bid_after_rating(self):
+        """Check if both parties have rated each other, and close the bid if so"""
+        from apps.ratings.models import Rating
+
+        shipper = self.bid.user
+        carrier = self.user
+
+        # Check if shipper has rated the carrier
+        shipper_rated_carrier = Rating.objects.filter(
+            rater=shipper,
+            ratee=carrier,
+            bid=self.bid
+        ).exists()
+
+        # Check if carrier has rated the shipper
+        carrier_rated_shipper = Rating.objects.filter(
+            rater=carrier,
+            ratee=shipper,
+            bid=self.bid
+        ).exists()
+
+        # If both have rated, close the bid
+        if shipper_rated_carrier and carrier_rated_shipper:
+            self.bid.status = "completed"
+            self.bid.save()
+
+            # Create completion notifications
+            from apps.notifications.models import Notification
+
+            Notification.create_notification(
+                user=shipper,
+                title="Bid Completed",
+                message=f"Your bid '{self.bid.title}' has been completed successfully. Both parties have provided ratings.",
+                notification_type="bid_completed",
+                related_bid=self.bid,
+            )
+
+            Notification.create_notification(
+                user=carrier,
+                title="Bid Completed",
+                message=f"The bid '{self.bid.title}' has been completed successfully. Both parties have provided ratings.",
+                notification_type="bid_completed",
+                related_bid=self.bid,
+            )

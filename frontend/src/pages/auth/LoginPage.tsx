@@ -5,6 +5,7 @@ import AuthLayout from "@/components/layouts/AuthLayout";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Eye, EyeOff } from "lucide-react";
 import { loginSchema, type LoginFormData } from "@/lib/validations";
 import { authApi } from "@/lib/api";
 import { useAuthContext } from "@/hooks/useAuth";
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const { setSession } = useAuthContext();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<
     Partial<Record<keyof LoginFormData, string>>
   >({});
@@ -97,18 +99,31 @@ export default function LoginPage() {
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (errors.password)
-                    setErrors({ ...errors, password: undefined });
-                }}
-                className={errors.password ? "border-destructive" : ""}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errors.password)
+                      setErrors({ ...errors, password: undefined });
+                  }}
+                  className={`pr-10 ${errors.password ? "border-destructive" : ""}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
               {errors.password && (
                 <p className="text-xs text-destructive">{errors.password}</p>
               )}

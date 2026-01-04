@@ -373,6 +373,8 @@ export default function BidDetailsPage() {
             <p className="text-gray-600 line-clamp-3">{bid.description}</p>
           </div>
 
+          {!requiresPayment && (
+
           <div className="flex items-start gap-3 p-3 bg-red-100 border-2 border-red-500 rounded-xl">
             <Calendar className="w-5 h-5 text-red-600 mt-0.5" />
             <div>
@@ -382,6 +384,7 @@ export default function BidDetailsPage() {
               <p className="text-gray-900">{bid.offers_deadline}</p>
             </div>
           </div>
+          )}
         </div>
 
         {/* Show additional details only if payment not required */}
@@ -597,8 +600,8 @@ export default function BidDetailsPage() {
             </div>
           </div>
 
-          {/* Rating Section - Shippers can rate carriers for completed/closed bids, carriers can rate shippers only after delivery completion */}
-          {bid && (bid.status === "completed" || bid.status === "closed") && (
+          {/* Rating Section - Shippers can rate carriers for completed/closed/awarded bids with delivery completed, carriers can rate shippers only after delivery completion */}
+          {bid && ((bid.status === "completed" || bid.status === "closed") || (bid.status === "awarded" && bid.selected_offer?.delivery_completed)) && (
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Rate Your Experience

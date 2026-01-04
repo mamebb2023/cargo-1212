@@ -47,3 +47,7 @@ class Rating(models.Model):
         super().save(*args, **kwargs)
         # Update ratee's average rating
         self.ratee.update_rating()
+
+        # Check if bid should be closed after rating
+        if self.bid.status == "awarded" and self.bid.selected_offer:
+            self.bid.selected_offer.check_and_close_bid_after_rating()

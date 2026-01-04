@@ -2,6 +2,9 @@ from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.db.models import Case, When, Value, IntegerField, F, ExpressionWrapper
+from django.db.models.functions import Cast, Coalesce
+import re
 from .models import Offer
 from .serializers import (
     OfferSerializer,
@@ -11,6 +14,32 @@ from .serializers import (
 )
 from apps.notifications.models import Notification
 from utils.response import api_response
+
+
+def extract_delivery_time_days(delivery_time_str):
+    """
+    Extract numerical value from delivery time string for sorting.
+    Examples: "3 days" -> 3, "48 hours" -> 2, "1 week" -> 7
+    """
+    if not delivery_time_str:
+        return 999
+
+    text = delivery_time_str.lower().strip()
+
+    match = re.search(r"(\d+)", text)
+    if not match:
+        return 999
+
+    number = int(match.group(1))
+
+    if "week" in text or "weeks" in text:
+        return number * 7
+    elif "hour" in text or "hours" in text:
+        return max(1, number // 24)
+    elif "day" in text or "days" in text:
+        return number
+    else:
+        return number
 
 
 class OfferListCreateView(generics.ListCreateAPIView):
@@ -27,14 +56,17 @@ class OfferListCreateView(generics.ListCreateAPIView):
         user = self.request.user
 
         if user.role == "carrier":
-            # Carriers see their own offers
             return Offer.objects.filter(user=user).order_by("-created_at")
         elif user.role == "admin":
-            # Admins see all offers
             return Offer.objects.all().order_by("-created_at")
         elif user.role == "shipper":
-            # Shippers see only active (approved) offers on their bids
-            return Offer.objects.filter(bid__user=user, status="active").order_by("-created_at")
+            # Shippers see all offers on their active/awarded bids
+            queryset = Offer.objects.all().order_by("-created_at")
+            # queryset = Offer.objects.filter(bid__user=user, bid__status__in=["active", "awarded"])
+            return queryset.order_by(
+                "-user__average_rating",
+                "price",
+            )
 
         return Offer.objects.none()
 
@@ -68,14 +100,28 @@ class OfferListCreateView(generics.ListCreateAPIView):
         offer_data = OfferSerializer(offer).data
         return Response(
             api_response(
-                success=True, message="Offer submitted successfully and is pending admin approval", data=offer_data
+                success=True,
+                message="Offer submitted successfully and is pending admin approval",
+                data=offer_data,
             ),
             status=status.HTTP_201_CREATED,
         )
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
+
+        # For shippers, apply final sorting by delivery time (nearest first)
+        if request.user.role == "shipper":
+            offers_list = list(queryset)
+            # Sort by delivery time (nearest first) as final tiebreaker
+            offers_list.sort(
+                key=lambda offer: extract_delivery_time_days(offer.delivery_time)
+            )
+            serializer = self.get_serializer(offers_list, many=True)
+        else:
+            # For carriers and admins, use the queryset directly
+            serializer = self.get_serializer(queryset, many=True)
+
         return Response(
             api_response(
                 success=True,
@@ -131,7 +177,7 @@ class OfferDetailView(generics.RetrieveUpdateAPIView):
         if request.user.role == "admin":
             serializer = self.get_serializer(offer, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
-            
+
             old_status = offer.status
             offer = serializer.save()
 
@@ -140,11 +186,15 @@ class OfferDetailView(generics.RetrieveUpdateAPIView):
                 if offer.status == "active":
                     offer.approve_offer(request.user)
                 elif offer.status == "rejected":
-                    offer.reject_offer(request.user, request.data.get("rejection_reason", ""))
+                    offer.reject_offer(
+                        request.user, request.data.get("rejection_reason", "")
+                    )
 
             return Response(
                 api_response(
-                    success=True, message="Offer updated successfully", data=serializer.data
+                    success=True,
+                    message="Offer updated successfully",
+                    data=serializer.data,
                 )
             )
 
@@ -201,7 +251,9 @@ def accept_offer_view(request, offer_id):
 
     if offer.status != "active":
         return Response(
-            api_response(success=False, message="Only active (approved) offers can be accepted"),
+            api_response(
+                success=False, message="Only active (approved) offers can be accepted"
+            ),
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -305,7 +357,10 @@ def reject_offer_view(request, offer_id):
 
     if offer.status != "active":
         return Response(
-            api_response(success=False, message="Only active (approved) offers can be rejected by shipper"),
+            api_response(
+                success=False,
+                message="Only active (approved) offers can be rejected by shipper",
+            ),
             status=status.HTTP_400_BAD_REQUEST,
         )
 
