@@ -5,6 +5,22 @@ REM Navigate to the directory of this script
 pushd "%~dp0"
 
 echo
+echo Cargo1212 Backend Setup (PostgreSQL)
+echo =====================================
+echo.
+echo This project uses PostgreSQL database exclusively.
+echo Setting up PostgreSQL database...
+echo.
+
+REM Setup PostgreSQL database
+call setup_postgres.bat
+if errorlevel 1 (
+    echo ERROR: PostgreSQL setup failed.
+    echo Please ensure PostgreSQL is installed and running.
+    goto :end
+)
+
+echo
 echo Setting up Django backend environment
 echo =====================================
 
@@ -82,7 +98,17 @@ if errorlevel 1 (
     goto :end
 )
 
-REM 9) Start auto-selection monitor in background
+REM 9) Test database connection
+@REM echo
+@REM echo Testing Database Connection
+@REM echo ============================
+@REM python test_db_connection.py
+@REM if errorlevel 1 (
+@REM     echo ERROR: Database connection test failed.
+@REM     goto :end
+@REM )
+
+REM 10) Start auto-selection monitor in background
 echo
 echo Starting Auto-Selection Monitor
 echo ===============================
@@ -91,7 +117,7 @@ start "Cargo1212 Auto-Selection" cmd /c "auto_select_monitor.bat"
 REM Small delay to let the monitor start
 timeout /t 2 /nobreak > nul
 
-REM 10) Start development server
+REM 11) Start development server
 echo
 echo Starting Django development server
 echo ==================================

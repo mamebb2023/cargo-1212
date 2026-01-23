@@ -1,8 +1,30 @@
+# Environment variables
 .env
+.env.local
+.env.*.local
+
+# Virtual environment
 venv
-__pycache__
-db.sqlite3
-media
+venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Database files (PostgreSQL - no local files)
+# Note: PostgreSQL data is stored on the PostgreSQL server
+
+# Media files (uploaded content)
+media/
+!media/.gitkeep
+
+# Static files
+staticfiles/
+static/
 
 # Logs
 logs

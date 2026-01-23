@@ -6,3 +6,4 @@ psycopg2-binary==2.9.11
 python-decouple==3.8
 django-cors-headers==4.9.0
 setuptools==80.9.0
+python-dotenv==1.0.0

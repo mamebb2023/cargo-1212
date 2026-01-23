@@ -119,14 +119,15 @@ class BidDetailView(generics.RetrieveUpdateDestroyAPIView):
         bid = self.get_object()
 
         # Check if user can see full bid details
-        # Allow if: user owns the bid OR user has approved payments for this specific bid
+        # Allow if: user owns the bid OR user has approved payments for this specific bid OR user is admin
         user_has_paid_for_this_bid = (
             hasattr(request.user, "payments")
             and request.user.payments.filter(bid=bid, status="approved").exists()
         )
         user_owns_bid = request.user.id == bid.user.id
+        user_is_admin = request.user.role == "admin"
 
-        if not (user_owns_bid or user_has_paid_for_this_bid):
+        if not (user_owns_bid or user_has_paid_for_this_bid or user_is_admin):
             # Return limited information for users who haven't paid and don't own the bid
             limited_data = {
                 "id": bid.id,
