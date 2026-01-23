@@ -282,7 +282,7 @@ def request_bid_deletion_view(request, bid_id):
         return Response(
             api_response(
                 success=False,
-                message=f"Only active or pending bids can be requested for deletion. Current status: {bid.status}"
+                message=f"Only active or pending bids can be requested for deletion. Current status: {bid.status}",
             ),
             status=status.HTTP_400_BAD_REQUEST,
         )
@@ -290,12 +290,14 @@ def request_bid_deletion_view(request, bid_id):
     # Check if deletion request already exists
     existing_request = BidDeletionRequest.objects.filter(bid=bid).first()
     if existing_request:
-        print(f"DEBUG: Deletion request already exists for bid {bid_id}, status: {existing_request.status}")
+        print(
+            f"DEBUG: Deletion request already exists for bid {bid_id}, status: {existing_request.status}"
+        )
         if existing_request.status == "pending":
             return Response(
                 api_response(
                     success=False,
-                    message="A deletion request for this bid is already pending admin review"
+                    message="A deletion request for this bid is already pending admin review",
                 ),
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -303,14 +305,16 @@ def request_bid_deletion_view(request, bid_id):
             return Response(
                 api_response(
                     success=False,
-                    message="This bid has already been approved for deletion"
+                    message="This bid has already been approved for deletion",
                 ),
                 status=status.HTTP_400_BAD_REQUEST,
             )
         else:  # rejected
             # Delete the rejected request and allow creating a new one
             existing_request.delete()
-            print(f"DEBUG: Deleted rejected deletion request for bid {bid_id}, allowing new request")
+            print(
+                f"DEBUG: Deleted rejected deletion request for bid {bid_id}, allowing new request"
+            )
 
     reason = request.data.get("reason", "").strip()
     print(f"DEBUG: Reason received: '{reason}'")
@@ -344,6 +348,6 @@ def request_bid_deletion_view(request, bid_id):
                 "id": deletion_request.id,
                 "status": deletion_request.status,
                 "created_at": deletion_request.created_at,
-            }
+            },
         )
     )

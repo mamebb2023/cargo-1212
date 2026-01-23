@@ -268,6 +268,39 @@ General utility functions
 - Verification documents
 - Stored in `media/` directory
 
+## Testing
+
+### Test Folder Structure
+
+#### `test/`
+**Purpose**: Unit and integration tests for the Django backend
+- **test_example.py**: Basic test examples demonstrating Django testing patterns
+
+**Test Coverage**:
+- User model creation and properties
+- String representation methods
+- Role-based functionality
+- Basic CRUD operations
+
+**Running Tests**:
+```bash
+# Run all tests
+python manage.py test
+
+# Run specific test file
+python manage.py test test.test_example
+
+# Run with coverage
+coverage run manage.py test
+coverage report
+```
+
+**Test Structure**:
+- Uses Django's built-in TestCase class
+- setUp() method for test data initialization
+- Individual test methods for specific functionality
+- Assertions for expected behavior validation
+
 ## Deployment Considerations
 
 ### Environment Variables

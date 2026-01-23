@@ -49,7 +49,7 @@ The Cargo1212 frontend is a modern React-based single-page application (SPA) bui
 - Route definitions for all pages
 
 **Route Structure**:
-```typescript
+```text
 // Public routes
 / (Landing page)
 /about, /contact, /terms, /privacy
@@ -234,12 +234,6 @@ npm run build  # Includes TypeScript compilation
 3. **Code Quality**: `npm run lint` during development
 4. **Build**: `npm run build` for production
 5. **Preview**: `npm run preview` to test production build
-
-## Browser Support
-
-- **Modern Browsers**: Chrome, Firefox, Safari, Edge
-- **Mobile Browsers**: iOS Safari, Chrome Mobile
-- **Progressive Enhancement**: Graceful degradation for older browsers
 
 ## Integration Points
 
